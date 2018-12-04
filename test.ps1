@@ -1,7 +1,7 @@
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
-# Eq to instdir in the Batch file
+# Place where the script is, main directory
 $instdir = Split-Path -Path $MyInvocation.MyCommand.Path
 
 # Check if directory has spaces, may be unecessary depending on what requires no space paths
@@ -58,9 +58,9 @@ $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
 
 $jsonObjects = [PSCustomObject]@{
-    msys2Arch      = switch ($bitness) {
-        64 {2}
-        Default {1}
+    msys2Arch      = switch ([System.IntPtr]::Size) {
+        4 {1}
+        default {2}
     }
     arch           = 0
     license2       = 0
@@ -644,8 +644,39 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
     }
 }
 
+# EOQuestions
 
+# msys2 system
+if (-Not (Test-Path $instdir\$msys2\usr\bin\wget.exe)) {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "Downloading Wget`n"
+    Write-Host "-------------------------------------------------------------"
+    Set-Location $build
+    if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
+        if (-Not (Test-Path $build\wget.exe)) {
+            [int](New-Object System.Net.WebRequest.create('https://i.fsbn.eu/pub/wget-pack.exe').GetResponse())
+        }
+    }
+}
 
+# First we create the request.
+#$HTTP_Request = [System.Net.WebRequest]::Create('http://google.com')
+
+# We then get a response from the site.
+#$HTTP_Response = $HTTP_Request.GetResponse()
+
+# We then get the HTTP code as an integer.
+#$HTTP_Status = [int]$HTTP_Response.StatusCode
+
+#If ($HTTP_Status -eq 200) {
+#    Write-Host "Site is OK!"
+#}
+#Else {
+#    Write-Host "The Site may be down, please check!"
+#}
+
+# Finally, we clean up the http request by closing it.
+#$HTTP_Response.Close()
 
 
 
