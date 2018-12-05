@@ -181,8 +181,6 @@ else {
 #Select-Object -InputObject $jsonObjects -Property $a
 
 # sytemVars
-
-#
 foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select-Object -ExpandProperty Name)) {
     $a = Get-Member -Name $($order.$b) -InputObject $jsonObjects | Select-Object -ExpandProperty Name
     if ($a -eq "msys2Arch") {
@@ -688,7 +686,7 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\wget.exe)) {
             $progressPreference = 'Continue'
             $wgetHash = (Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash
             if ($wgetHash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                Start-Process -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+                Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
             }
             else {
                 Remove-Item $build\wget-pack.exe
@@ -716,7 +714,7 @@ if (-Not (Test-Path $instdir\$msys2\msys2_shell.cmd)) {
     Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\wget.exe -ArgumentList "--tries=5 --retry-connrefused --waitretry=5 --continue -O `"msys2-base.tar.xz`" `"http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz`""
 
 }
-if (-Test-Path $build\msys2-base.tar.xz) {
+if (Test-Path $build\msys2-base.tar.xz) {
     # I hate how I can't use pipes similar to *nix
     Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
     Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
@@ -736,7 +734,8 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\msys-2.0.dll)) {
     exit
 }
 
-$mintty = Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\mintty.exe -ArgumentList "-d -i /msys2.ico"
+$mintty = "$instdir\$msys2\usr\bin\mintty.exe"
+$defaultMintty = "-d -i /msys2.ico "
 if (-Not (Test-Path $instdir\mintty.link)) {
     if ($msys2 -eq "msys32") {
         Write-Host "-------------------------------------------------------------`n"
@@ -744,13 +743,228 @@ if (-Not (Test-Path $instdir\mintty.link)) {
         Write-Host "-------------------------------------------------------------"
         Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\autorebase.bat
     }
-    Write-Host "-------------------------------------------------------------`n"
-    Write-Host "- make a first run`n"
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "- make a first run"
     Write-Host "-------------------------------------------------------------"
     if (Test-Path $build\firstrun.log) {
         Remove-Item $build\firstrun.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\bash
+    Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\firstrun.log /usr/bin/bash --login -c exit")
+
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "First update"
+    Write-Host "-------------------------------------------------------------"
+    $(
+        Write-Output "echo -ne `"\033]0;first msys2 update\007`""
+        Write-Output "pacman --noconfirm -Sy --asdeps pacman-mirrors"
+        Write-Output "sed -i `"s;^^IgnorePkg.*;#&;`" /etc/pacman.conf"
+        Write-Output "sleep 4`nexit"
+    )| Out-File $build\firstUpdate.sh
+    if (Test-Path $build\firstUpdate.log) {
+        Remove-Item $build\firstUpdate.log
+    }
+    Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\firstUpdate.log /usr/bin/bash --login $build\firstUpdate.sh")
+    Remove-Item $build\firstUpdate.sh
+
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "critical updates"
+    Write-Host "-------------------------------------------------------------"
+    Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\usr\bin\sh.exe -ArgumentList '-lc "pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime"'
+
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "second update"
+    Write-Host "-------------------------------------------------------------"
+    $(
+        Write-Output "echo -ne `"\033]0;second msys2 update\007`"`r`npacman --noconfirm -Syu --asdeps`r`nexit"
+    ) | Out-File $build\secondUpdate.sh
+    if (Test-Path $build\secondUpdate.log) {
+        Remove-Item $build\secondUpdate.log
+    }
+    Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\secondUpdate.log /usr/bin/bash --login $build\secondUpdate.sh")
+    Remove-Item $build\secondUpdate.sh
+
+    $(
+        Write-Output "Set Shell = CreateObject(`"WScript.Shell`")"
+        Write-Output "Set link = Shell.CreateShortcut(`"$instdir\mintty.lnk`")"
+        Write-Output "link.Arguments = `"-full-path -mingw`""
+        Write-Output "link.Description = `"msys2 shell console`""
+        Write-Output "link.TargetPath = `"$instdir\$msys2\msys2_shell.cmd`""
+        Write-Output "link.WindowStyle = 1"
+        Write-Output "link.IconLocation = `"$instdir\$msys2\msys2.ico`""
+        Write-Output "link.WorkingDirectory = `"$instdir\$msys2`""
+        Write-Output "link.Save"
+    ) | Out-File $build\setlink.vbs
+    Start-Process -NoNewWindow -Wait -ArgumentList "/nologo $build\setlink.vbs" cscript
+    Remove-Item $build\setlink.vbs
+}
+if (-Not (Test-Path $instdir\$msys2\home\$env:UserName)) {
+    mkdir $instdir\$msys2\home\$env:UserName
+}
+
+if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.minttyrc)) {
+    $(
+        Write-Output "printf '%s\n' Locale=en_US Charset=UTF-8 Font=Consolas Columns=120 Rows=30 > /home/$env:UserName/.minttyrc"
+    ) | Out-File $build\mintty.sh
+    Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "/usr/bin/bash --login $build\mintty.sh")
+    Remove-Item $build\mintty.sh
+}
+
+if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.hgrc)) {
+    $(
+        Write-Output "[ui]"
+        Write-Output "username = $env:UserName"
+        Write-Output "verbose = True"
+        Write-Output "editor = vim`r`n"
+        Write-Output "[web]"
+        Write-Output "cacerts=/usr/ssl/cert.pem`r`n"
+        Write-Output "[extensions]"
+        Write-Output "color =`r`n"
+        Write-Output "[color]"
+        Write-Output "status.modified = magenta bold"
+        Write-Output "status.added = green bold"
+        Write-Output "status.removed = red bold"
+        Write-Output "status.deleted = cyan bold"
+        Write-Output "status.unknown = blue bold"
+        Write-Output "status.ignored = black bold"
+    ) | Out-File $instdir\$msys2\home\$env:UserName\.hgrc
+}
+
+if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.gitconfig)) {
+    $(
+        Write-Output "[user]"
+        Write-Output "name = $env:UserName"
+        Write-Output "email = $env:UserName@$env:COMPUTERNAME`r`n"
+        Write-Output "[color]"
+        Write-Output "ui = true`r`n"
+        Write-Output "[core]"
+        Write-Output "editor = vim"
+        Write-Output "autocrlf =`r`n"
+        Write-Output "[merge]"
+        Write-Output "tool = vimdiff`r`n"
+        Write-Output "[push]"
+        Write-Output "default = simple"
+    ) | Out-File $instdir\$msys2\home\$env:UserName\.gitconfig
+}
+
+if (Test-Path $instdir\$msys2\etc\pac-base.pk) {
+    Remove-Item $instdir\$msys2\etc\pac-base.pk
+}
+foreach ($i in $msyspackages) {
+    Write-Output "$i" | Out-File $instdir\$msys2\etc\pac-base.pk
+}
+
+if (-Not (Test-Path $instdir\$msys2\usr\bin\make.exe)) {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "install msys2 base system"
+    Write-Host "-------------------------------------------------------------"
+    if (Test-Path $build\install_base_failed) {
+        Remove-Item $build\install_base_failed
+    }
+    $(
+        Write-Output "echo -ne `"\033]0;install base system\007`""
+        Write-Output "msysbasesystem=`"`$(cat /etc/pac-base.pk | tr '\n\r' '  ')`""
+        Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`""
+        Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed"
+        Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -S --noconfirm --ask=20 --needed"
+        Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -D --asexplicit"
+        Write-Output "sleep 3"
+        Write-Output "exit"
+    ) | Out-File $build\pacman.sh
+    if (Test-Path $build\pacman.log) {
+        Remove-Item $build\pacman.log
+    }
+    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\pacman.log /usr/bin/bash --login $build\pacman.sh")
+    Remove-Item $build\pacman.sh
+}
+
+if ((Get-Item -Path $instdir\$msys2\usr\ssl\cert.pem).Length -eq 0) {
+    $(
+        Write-Output "update-ca-trust"
+        Write-Output "sleep 3"
+        Write-Output "exit"
+    ) | Out-File -$build\cert.sh
+    if (Test-Path $build\cert.log) {
+        Remove-Item $build\cert.log
+    }
+    Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\cert.log /usr/bin/bash --login $build\cert.sh")
+}
+
+if (-Not (Test-Path $instdir\$msys2\usr\bin\hg.bat)) {
+    $(
+
+        Write-Output "@echo off`n"
+        Write-Output "setlocal"
+        Write-Output "set HG=%~f0`n"
+        Write-Output "set PYTHONHOME="
+        Write-Output "set in=%*"
+        Write-Output "set out=%in: {= `"{%"
+        Write-Output "set out=%out:} =}`" %`n"
+        Write-Output "%~dp0python2 %~dp0hg %out%"
+    ) | Out-File $instdir\$msys2\usr\bin\hg.bat
+}
+
+if (Test-Path $instdir\$msys2\etc\pac-mingw.pk) {
+    Remove-Item $instdir\$msys2\etc\pac-mingw.pk
+}
+foreach ($i in $mingwpackages) {
+    Write-Output "$i" | Out-File $instdir\$msys2\etc\pac-mingw.pk
+}
+function Build-32compiler {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "install 32 bit compiler"
+    Write-Host "-------------------------------------------------------------"
+    $(
+        Write-Output "echo -ne `"\033]0;install 32 bit compiler\007`""
+        Write-Output "mingw32compiler=`"$`(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-i686-&;g' | tr '\n\r' '  ')`""
+        Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`""
+        Write-Output "echo `$mingw32compiler | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed"
+        Write-Output "echo `$mingw32compiler | xargs `$nargs pacman -S --noconfirm --ask=20 --needed"
+        Write-Output "sleep 3"
+        Write-Output "exit"
+    ) | Out-File $build\mingw32.sh
+    if (Test-Path $build\mingw32.log) {
+        Remove-Item $build\mingw32.log
+    }
+    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\mingw32.log /usr/bin/bash --login $build\mingw32.sh")
+    Remove-Item $build\mingw32.sh
+}
+
+function Build-64compiler {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "install 64 bit compiler"
+    Write-Host "-------------------------------------------------------------"
+    $(
+        Write-Output "echo -ne "\033]0; install 64 bit compiler\007""
+        Write-Output "mingw64compiler="$(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-x86_64-&;g' | tr '\n\r' '  ')""
+        Write-Output "[[ "$(uname)" = *6.1* ]] ^&^& nargs="-n 4""
+        Write-Output "echo $mingw64compiler ^| xargs $nargs pacman -Sw --noconfirm --ask=20 --needed"
+        Write-Output "echo $mingw64compiler ^| xargs $nargs pacman -S --noconfirm --ask=20 --needed"
+        Write-Output "sleep ^3"
+        Write-Output "exit"
+    ) | Out-File $build\mingw32.sh
+    if (Test-Path $build\mingw32.log) {
+        Remove-Item $build\mingw32.log
+    }
+    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\mingw32.log /usr/bin/bash --login $build\mingw32.sh")
+    Remove-Item $build\mingw32.sh
+}
+
+if ($build32) {
+    if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
+        Build-32compiler
+        if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
+            Write-Host "-------------------------------------------------------------"
+            Write-Host "MinGW32 GCC compiler isn't installed; maybe the download didn't work"
+            Write-Host "Do you want to try it again?"
+            Write-Host "-------------------------------------------------------------"
+            $try32 =
+            if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
+                Build-32compiler
+            } else {
+                exit
+            }
+        }
+    }
 }
 
 #(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
