@@ -750,7 +750,7 @@ if (-Not (Test-Path $instdir\mintty.link)) {
     if (Test-Path $build\firstrun.log) {
         Remove-Item $build\firstrun.log
     }
-
+    Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\bash
 }
 
 #(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
