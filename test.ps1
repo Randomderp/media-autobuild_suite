@@ -1,3 +1,13 @@
+# Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008
+if ($PSVersionTable.PSVersion.Major -lt 3) {
+    Write-Host "Your Powershell version is too low!"
+    Write-Host "Please update your version either through an OS update"
+    Write-Host "or download the latest version for your system from"
+    Write-Host "https://github.com/PowerShell/PowerShell"
+    Pause
+    exit
+}
+
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
@@ -313,6 +323,7 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                     Write-host "for all backends except SChannel.`n"
                 }
                 ffmbc {
+                    Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n"
                     Write-host "Build FFMedia Broadcast binary?"
                     Write-host "Note: this is a fork of FFmpeg 0.10. As such, it's very likely to fail"
                     Write-host "to build, work, might burn your computer, kill your children, like mplayer."
@@ -653,36 +664,94 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
 # msys2 system
 if (-Not (Test-Path $instdir\$msys2\usr\bin\wget.exe)) {
     Write-Host "-------------------------------------------------------------`n"
-    Write-Host "Downloading Wget`n"
+    Write-Host "- Downloading Wget`n"
     Write-Host "-------------------------------------------------------------"
     Set-Location $build
     if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
-        if (-Not (Test-Path $build\wget.exe)) {
-            [int](New-Object System.Net.WebRequest.create('https://i.fsbn.eu/pub/wget-pack.exe').GetResponse())
+        while (-Not (Test-Path $build\wget.exe)) {
+            $progressPreference = 'silentlyContinue'
+            if (Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 6>$null 2>$null) {
+                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+            }
+            elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 6>$null 2>$null) {
+                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+            }
+            else {
+                Write-Host "-------------------------------------------------------------`n"
+                Write-Host "Script to download necessary components failed.`n"
+                Write-Host "Download and extract this manually to inside $($build):"
+                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
+                Write-Host "-------------------------------------------------------------"
+                Pause
+                exit
+            }
+            $progressPreference = 'Continue'
+            $wgetHash = (Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash
+            if ($wgetHash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+                Start-Process -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+            }
+            else {
+                Remove-Item $build\wget-pack.exe
+                Write-Host "-------------------------------------------------------------`n"
+                Write-Host "Script to download necessary components failed.`n"
+                Write-Host "Download and extract this manually to inside $($build):"
+                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
+                Write-Host "-------------------------------------------------------------"
+                Pause
+                exit
+            }
         }
+        Remove-Item $build\wget-pack.exe
     }
 }
 
-# First we create the request.
-#$HTTP_Request = [System.Net.WebRequest]::Create('http://google.com')
+if (-Not (Test-Path $instdir\$msys2\msys2_shell.cmd)) {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "- Download and install msys2 basic system`n"
+    Write-Host "-------------------------------------------------------------"
+    $msysprefix = switch ($msys2) {
+        msys32 {"i686"}
+        Default {"x86_64"}
+    }
+    Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\wget.exe -ArgumentList "--tries=5 --retry-connrefused --waitretry=5 --continue -O `"msys2-base.tar.xz`" `"http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz`""
 
-# We then get a response from the site.
-#$HTTP_Response = $HTTP_Request.GetResponse()
+}
+if (-Test-Path $build\msys2-base.tar.xz) {
+    # I hate how I can't use pipes similar to *nix
+    Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
+    Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
+    Remove-Item $build\msys2-base.tar
+    Remove-Item $build\msys2-base.tar.xz
+}
+if (-Not (Test-Path $instdir\$msys2\usr\bin\msys-2.0.dll)) {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "- Download msys2 basic system failed,"
+    Write-Host "- please download it manually from:"
+    Write-Host "- http://repo.msys2.org/distrib/"
+    Write-Host "- and copy the uncompressed folder to:"
+    Write-Host "- $build"
+    Write-Host "- and start the batch script again!`n"
+    Write-Host "-------------------------------------------------------------"
+    pause
+    exit
+}
 
-# We then get the HTTP code as an integer.
-#$HTTP_Status = [int]$HTTP_Response.StatusCode
+$mintty = Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\mintty.exe -ArgumentList "-d -i /msys2.ico"
+if (-Not (Test-Path $instdir\mintty.link)) {
+    if ($msys2 -eq "msys32") {
+        Write-Host "-------------------------------------------------------------`n"
+        Write-Host "rebase $msys2 system`n"
+        Write-Host "-------------------------------------------------------------"
+        Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\autorebase.bat
+    }
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "- make a first run`n"
+    Write-Host "-------------------------------------------------------------"
+    if (Test-Path $build\firstrun.log) {
+        Remove-Item $build\firstrun.log
+    }
 
-#If ($HTTP_Status -eq 200) {
-#    Write-Host "Site is OK!"
-#}
-#Else {
-#    Write-Host "The Site may be down, please check!"
-#}
-
-# Finally, we clean up the http request by closing it.
-#$HTTP_Response.Close()
-
-
+}
 
 #(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
 #Invoke-WebRequest https://i.fsbn.eu/pub/wget-pack.exe -o "wget-pack.exe"
