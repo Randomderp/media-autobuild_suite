@@ -1,7 +1,7 @@
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
-# Eq to instdir in the Batch file
+# Place where the script is, main directory
 $instdir = Split-Path -Path $MyInvocation.MyCommand.Path
 
 # Check if directory has spaces, may be unecessary depending on what requires no space paths
@@ -58,9 +58,9 @@ $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
 
 $jsonObjects = [PSCustomObject]@{
-    msys2Arch      = switch ($bitness) {
-        64 {2}
-        Default {1}
+    msys2Arch      = switch ([System.IntPtr]::Size) {
+        4 {1}
+        default {2}
     }
     arch           = 0
     license2       = 0
@@ -72,6 +72,7 @@ $jsonObjects = [PSCustomObject]@{
     x2643          = 0
     x2652          = 0
     other265       = 0
+    vvc            = 0
     flac           = 0
     fdkaac         = 0
     faac           = 0
@@ -110,35 +111,34 @@ $order = [PSCustomObject]@{
     18 = "x2643"
     19 = "x2652"
     20 = "other265"
-    21 = "flac"
-    22 = "fdkaac"
-    23 = "faac"
-    24 = "mediainfo"
-    25 = "soxB"
-    26 = "ffmpegB2"
-    27 = "ffmpegUpdate"
-    28 = "ffmpegChoice"
-    29 = "mp4box"
-    30 = "rtmpdump"
-    31 = "mplayer2"
-    32 = "mpv"
-    33 = "bmx"
-    34 = "curl"
-    35 = "ffmbc"
-    36 = "cyanrip2"
-    37 = "redshift"
-    38 = "ripgrep"
-    39 = "cores"
-    40 = "deleteSource"
-    41 = "strip"
-    42 = "pack"
-    43 = "logging"
-    44 = "updateSuite"
-    45 = "forceQuitBatch"
+    21 = "vvc"
+    22 = "flac"
+    23 = "fdkaac"
+    24 = "faac"
+    25 = "mediainfo"
+    26 = "soxB"
+    27 = "ffmpegB2"
+    28 = "ffmpegUpdate"
+    29 = "ffmpegChoice"
+    30 = "mp4box"
+    31 = "rtmpdump"
+    32 = "mplayer2"
+    33 = "mpv"
+    34 = "bmx"
+    35 = "curl"
+    36 = "ffmbc"
+    37 = "cyanrip2"
+    38 = "redshift"
+    39 = "ripgrep"
+    40 = "cores"
+    41 = "deleteSource"
+    42 = "strip"
+    43 = "pack"
+    44 = "logging"
+    45 = "updateSuite"
+    46 = "forceQuitBatch"
 }
 $writeProperties = $false
-
-$iniOptions = @("msys2Arch", "arch", "license2", "standalone", "vpx2", "aom", "rav1e", "dav1d", "x2643", "x2652", "other265", "flac", "fdkaac", "faac", "mediainfo", "soxB", "ffmpegB2", "ffmpegUpdate", "ffmpegChoice", "mp4box", "rtmpdump", "mplayer2", "mpv", "bmx", "curl", "ffmbc", "cyanrip2", "redshift", "ripgrep", "cores", "deleteSource", "strip", "pack", "logging", "updateSuite", "forceQuitBatch")
 
 #$previousOptions = $false # redundant, probably
 #$msys2ArchINI = 0 # also redundant, probably
@@ -236,11 +236,14 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                     Write-host "Binaries being built depends on 'standalone=y' and are always static.`n"
                 }
                 x2652 {
-                    Write-host "Binaries being built depends on 'standalone=y'"
-                    Write-host "Build x265 [H.265 encoder]?`n"
+                    Write-host "Build x265 [H.265 encoder]?"
+                    Write-host "Binaries being built depends on 'standalone=y'`n"
                 }
                 other265 {
-                    Write-Host "Build standalone Kvazaar?`n"
+                    Write-Host "Build standalone Kvazaar [H.265 encoder]?`n"
+                }
+                vvc {
+                    Write-Host "Build Fraunhofer VVC [H.265 successor enc/decoder]?`n"
                 }
                 flac {
                     Write-Host "Build FLAC [Free Lossless Audio Codec]?`n"
@@ -351,8 +354,9 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                     Write-Host "On successful compilation, these logs are deleted since they aren't needed.`n"
                 }
                 updateSuite {
-                    Write-Host "Create script to update suite files automatically?`n"
-                    Write-Host "If you have made changes to the scripts, they will be reset but saved to a .diff text file inside $build"
+                    Write-Host "Create script to update suite files automatically?"
+                    Write-Host "If you have made changes to the scripts, they will be reset but saved to"
+                    Write-Host "a .diff text file inside $build"
                 }
                 forceQuitBatch {
                     Write-Host "Force quit this batch window after launching compilation script?"
@@ -411,7 +415,7 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                     Write-host "3 = No ^(Mimic Zeranoe^)"
                     Write-host "4 = No ^(All available external libs^)`n"
                 }
-                mplayer2 {
+                mpv {
                     Write-host "1 = Yes"
                     Write-host "2 = No"
                     Write-host "3 = compile with Vapoursynth, if installed [see Warning]`n"
@@ -644,8 +648,39 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
     }
 }
 
+# EOQuestions
 
+# msys2 system
+if (-Not (Test-Path $instdir\$msys2\usr\bin\wget.exe)) {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "Downloading Wget`n"
+    Write-Host "-------------------------------------------------------------"
+    Set-Location $build
+    if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
+        if (-Not (Test-Path $build\wget.exe)) {
+            [int](New-Object System.Net.WebRequest.create('https://i.fsbn.eu/pub/wget-pack.exe').GetResponse())
+        }
+    }
+}
 
+# First we create the request.
+#$HTTP_Request = [System.Net.WebRequest]::Create('http://google.com')
+
+# We then get a response from the site.
+#$HTTP_Response = $HTTP_Request.GetResponse()
+
+# We then get the HTTP code as an integer.
+#$HTTP_Status = [int]$HTTP_Response.StatusCode
+
+#If ($HTTP_Status -eq 200) {
+#    Write-Host "Site is OK!"
+#}
+#Else {
+#    Write-Host "The Site may be down, please check!"
+#}
+
+# Finally, we clean up the http request by closing it.
+#$HTTP_Response.Close()
 
 
 
