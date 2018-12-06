@@ -909,7 +909,7 @@ if (Test-Path $instdir\$msys2\etc\pac-mingw.pk) {
 foreach ($i in $mingwpackages) {
     Write-Output "$i" | Out-File $instdir\$msys2\etc\pac-mingw.pk
 }
-function Build-32compiler {
+function Get-32compiler {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install 32 bit compiler"
     Write-Host "-------------------------------------------------------------"
@@ -929,44 +929,89 @@ function Build-32compiler {
     Remove-Item $build\mingw32.sh
 }
 
-function Build-64compiler {
+function Get-64compiler {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install 64 bit compiler"
     Write-Host "-------------------------------------------------------------"
     $(
-        Write-Output "echo -ne "\033]0; install 64 bit compiler\007""
-        Write-Output "mingw64compiler="$(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-x86_64-&;g' | tr '\n\r' '  ')""
-        Write-Output "[[ "$(uname)" = *6.1* ]] ^&^& nargs="-n 4""
-        Write-Output "echo $mingw64compiler ^| xargs $nargs pacman -Sw --noconfirm --ask=20 --needed"
-        Write-Output "echo $mingw64compiler ^| xargs $nargs pacman -S --noconfirm --ask=20 --needed"
-        Write-Output "sleep ^3"
+        Write-Output "echo -ne `"\033]0; install 64 bit compiler\007`""
+        Write-Output "mingw64compiler=`"`$(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-x86_64-&;g' | tr '\n\r' '  ')`""
+        Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`""
+        Write-Output "echo `$mingw64compiler | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed"
+        Write-Output "echo `$mingw64compiler | xargs `$nargs pacman -S --noconfirm --ask=20 --needed"
+        Write-Output "sleep 3"
         Write-Output "exit"
-    ) | Out-File $build\mingw32.sh
-    if (Test-Path $build\mingw32.log) {
-        Remove-Item $build\mingw32.log
+    ) | Out-File $build\mingw64.sh
+    if (Test-Path $build\mingw64.log) {
+        Remove-Item $build\mingw64.log
     }
-    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\mingw32.log /usr/bin/bash --login $build\mingw32.sh")
-    Remove-Item $build\mingw32.sh
+    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\mingw64.log /usr/bin/bash --login $build\mingw64.sh")
+    Remove-Item $build\mingw64.sh
 }
 
 if ($build32) {
     if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
-        Build-32compiler
+        Get-32compiler
         if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
             Write-Host "-------------------------------------------------------------"
             Write-Host "MinGW32 GCC compiler isn't installed; maybe the download didn't work"
             Write-Host "Do you want to try it again?"
             Write-Host "-------------------------------------------------------------"
-            $try32 =
             if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
-                Build-32compiler
-            } else {
+                Get-32compiler
+            }
+            else {
                 exit
             }
         }
     }
 }
 
-#(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
-#Invoke-WebRequest https://i.fsbn.eu/pub/wget-pack.exe -o "wget-pack.exe"
-#(get-filehash -algorithm sha256 wget-pack.exe).hash
+if ($build64) {
+    if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
+        Get-64compiler
+        if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
+            Write-Host "-------------------------------------------------------------"
+            Write-Host "MinGW64 GCC compiler isn't installed; maybe the download didn't work"
+            Write-Host "Do you want to try it again?"
+            Write-Host "-------------------------------------------------------------"
+            if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
+                Get-64compiler
+            }
+            else {
+                exit
+            }
+        }
+    }
+}
+
+# updatebase
+Write-Host "-------------------------------------------------------------"
+Write-Host "update autobuild suite"
+Write-Host "-------------------------------------------------------------"
+Set-Location $build
+$scripts = "compile", "helper", "update"
+foreach ($s in $scripts) {
+    if (-Not (Test-Path $build\media-suite_$($s).sh)) {
+        Start-Process -NoNewWindow -Wait -FilePath $instdir\$msyspackages\usr\bin\wget.exe -ArgumentList "-t 20 --retry-connrefused --waitretry=2 -c https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
+    }
+}
+if ($updateSuite) {
+    if (-Not (Test-Path $instdir\update_suite.sh)) {
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "Creating suite update file...`n"
+        Write-Host "Run this file by dragging it to mintty before the next time you run"
+        Write-Host "the suite and before reporting an issue.`n"
+        Write-Host "It needs to be run separately and with the suite not running!"
+        Write-Host "-------------------------------------------------------------"
+    }
+    $(
+        Write-Output "#!/bin/bash`n"
+        Write-Output "# Run this file by dragging it to mintty shortcut."
+        Write-Output "# Be sure the suite is not running before using it!`n"
+        Write-Output "update=yes"
+        Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\usr\bin\sed -ArgumentList"-n '/start suite update/,/end suite update/p' $build/media-suite_update.sh"
+    ) | Out-File $instdir\update_suite.sh
+}
+
+# create Folders
