@@ -20,10 +20,10 @@ $tempPath = $env:Path
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
 # Place where the script is, main directory
-$instdir = $PSScriptRoot
+#$PSScriptRoot = $PSScriptRoot
 
 # Check if directory has spaces, may be unecessary depending on what requires no space paths
-if (($instdir) -match " ") {
+if (($PSScriptRoot) -match " ") {
     Write-Host "----------------------------------------------------------------------"
     Write-Host "You have probably run the script in a path with spaces.`n"
     Write-Host "This is not supported.`n"
@@ -33,7 +33,7 @@ if (($instdir) -match " ") {
     Pause
     exit
 }
-elseif (($instdir).Length -gt 60) {
+elseif (($PSScriptRoot).Length -gt 60) {
     # Check if directory path is longer than 60 characters, may be unecessary depending on what requires paths shorter than 60
     Write-Host "----------------------------------------------------------------------"
     Write-Host "The total filepath to the suite seems too large (larger than 60 characters):`n"
@@ -48,7 +48,7 @@ elseif (($instdir).Length -gt 60) {
     exit
 }
 else {
-    Set-Location $instdir
+    Set-Location $PSScriptRoot
 }
 
 # Set bitness, not build bit. Eq to _bitness, may be useless as it seemed to only be used to decide the msys2Arch
@@ -58,9 +58,9 @@ else {
 #}
 
 # Set Build path
-$build = "$($instdir)\build"
+$build = "$($PSScriptRoot)\build"
 if (-Not (Test-Path $build -PathType Container)) {
-    mkdir -Name "build" -Path $instdir 2>&1 | Out-Null
+    mkdir -Name "build" -Path $PSScriptRoot 2>&1 | Out-Null
 }
 
 # Set package variables
@@ -503,21 +503,19 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
         if ($writeProperties) {
             ConvertTo-Json -InputObject $jsonObjects | Out-File $json
         }
+    }
+    else {
         switch ($a) {
             arch {
-                switch ($jsonObjects.arch) {
-                    1 {
-                        $build32 = "yes"
-                        $build64 = "yes"
-                    }
-                    2 {
-                        $build32 = "yes"
-                        $build64 = "no"
-                    }
-                    3 {
-                        $build32 = "no"
-                        $build64 = "yes"
-                    }
+                $build32 = switch ($jsonObjects.arch) {
+                    1 {"yes"}
+                    2 {"yes"}
+                    Default {"no"}
+                }
+                $build64 = switch ($jsonObjects.arch) {
+                    1 {"yes"}
+                    3 {"yes"}
+                    Default {"no"}
                 }
             }
             license2 {
@@ -663,12 +661,167 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
             }
         }
     }
+    switch ($a) {
+        arch {
+            $build32 = switch ($jsonObjects.arch) {
+                1 {"yes"}
+                2 {"yes"}
+                Default {"no"}
+            }
+            $build64 = switch ($jsonObjects.arch) {
+                1 {"yes"}
+                3 {"yes"}
+                Default {"no"}
+            }
+        }
+        license2 {
+            $license2 = switch ($jsonObjects.license2) {
+                1 {"nonfree"}
+                2 {"gplv3"}
+                3 {"gpl"}
+                4 {"lgplv3"}
+                5 {"lgpl"}
+            }
+        }
+        x2643 {
+            $x2643 = switch ($jsonObjects.x2643) {
+                1 {"yes"}
+                2 {"no"}
+                3 {"high"}
+                4 {"full"}
+                5 {"shared"}
+                6 {"fullv"}
+                7 {"o8"}
+            }
+        }
+        x2652 {
+            $x2652 = switch ($jsonObjects.x2652) {
+                1 {"y"}
+                2 {"n"}
+                3 {"o10"}
+                4 {"o8"}
+                5 {"s"}
+                6 {"d"}
+                7 {"o12"}
+            }
+        }
+        ffmpegB2 {
+            $ffmpeg = switch ($jsonObjects.ffmpegB2) {
+                1 {"static"}
+                2 {"no"}
+                3 {"shared"}
+                4 {"both"}
+                5 {"sharedlibs"}
+            }
+        }
+        ffmpegUpdate {
+            $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
+                1 {"y"}
+                2 {"n"}
+                3 {"onlyFFmpeg"}
+            }
+        }
+        ffmpegChoice {
+            # writeOption
+            function Write-Option {
+                param (
+                    [array]$inp
+                )
+                foreach ($opt in $inp) {
+                    if (($opt | Out-String).StartsWith("--")) {
+                        Write-Output $opt
+                    }
+                    elseif (($opt | Out-String).StartsWith("#--")) {
+                        Write-Output $opt
+                    }
+                    elseif (($opt | Out-String).StartsWith("#")) {
+                        $opta = ($opt | Out-String -NoNewline).Substring(1)
+                        Write-Output "#--enable-$opta"
+                    }
+                    else {
+                        Write-Output "--enable-$opt"
+                    }
+                }
+            }
+            $ffmpegoptions = "$build\ffmpeg_options.txt"
+            $mpvoptions = "$build\mpv_options.txt"
+            switch ($jsonObjects.ffmpegChoice) {
+                1 {
+                    $ffmpegChoice = "y"
+                    if (-Not (Test-Path -PathType Leaf $ffmpegoptions)) {
+                        Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'" | Out-File $ffmpegoptions
+                        Write-Option $ffmpeg_options_builtin | Out-File -Append $ffmpegoptions
+                        Write-Output "# Common options" | Out-File -Append $ffmpegoptions
+                        Write-Option $ffmpeg_options_basic | Out-File -Append $ffmpegoptions
+                        Write-Output "# Zeranoe" | Out-File -Append $ffmpegoptions
+                        Write-Option $ffmpeg_options_zeranoe | Out-File -Append $ffmpegoptions
+                        Write-Output "# Full" | Out-File -Append $ffmpegoptions
+                        Write-Option $ffmpeg_options_full | Out-File -Append $ffmpegoptions
+                        Write-Host "-------------------------------------------------------------------------------"
+                        Write-Host "File with default FFmpeg options has been created in $ffmpegoptions`n"
+                        Write-Host "Edit it now or leave it unedited to compile according to defaults."
+                        Write-Host "-------------------------------------------------------------------------------"
+                        Pause
+                    }
+                    if (-Not (Test-Path -PathType Leaf $mpvoptions)) {
+                        Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them." | Out-File $mpvoptions
+                        Write-Option $mpv_options_builtin | Out-File -Append $mpvoptions
+                        Write-Output "`n# Common options or overriden defaults" | Out-File -Append $mpvoptions
+                        Write-Option $mpv_options_basic | Out-File -Append $mpvoptions
+                        Write-Output "`n# Full" | Out-File -Append $mpvoptions
+                        Write-Option $mpv_options_full | Out-File -Append $mpvoptions
+                        Write-Host "-------------------------------------------------------------------------------"
+                        Write-Host "File with default mpv options has been created in $mpvoptions`n"
+                        Write-Host "Edit it now or leave it unedited to compile according to defaults."
+                        Write-Host "-------------------------------------------------------------------------------"
+                        Pause
+                    }
+
+                }
+                2 {$ffmpegChoice = "n"}
+                3 {$ffmpegChoice = "z"}
+                4 {$ffmpegChoice = "f"}
+            }
+        }
+        mpv {
+            $mpv = switch ($jsonObjects.mpv) {
+                1 {"y"}
+                2 {"n"}
+                3 {"z"}
+            }
+        }
+        curl {
+            $curl = switch ($jsonObjects.curl) {
+                1 {"y"}
+                2 {"n"}
+                3 {"schannel"}
+                4 {"gnutls"}
+                5 {"openssl"}
+                6 {"libressl"}
+                7 {"mbedtls"}
+            }
+        }
+        cyanrip2 {
+            $cyanrip2 = switch ($jsonObjects.cyanrip2) {
+                1 {"yes"}
+                2 {"no"}
+            }
+        }
+        Default {
+            Set-Variable -Name $($a) -Value $(
+                switch ($jsonObjects.$a) {
+                    1 {"y"}
+                    2 {"n"}
+                }
+            )
+        }
+    }
 }
 
 # EOQuestions
 
 # msys2 system
-if (-Not (Test-Path $instdir\$msys2\usr\bin\wget.exe)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\wget.exe)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Downloading Wget`n"
     Write-Host "-------------------------------------------------------------"
@@ -711,7 +864,7 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\wget.exe)) {
     }
 }
 
-if (-Not (Test-Path $instdir\$msys2\msys2_shell.cmd)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
@@ -729,7 +882,7 @@ if (Test-Path $build\msys2-base.tar.xz) {
     Remove-Item $build\msys2-base.tar
     Remove-Item $build\msys2-base.tar.xz
 }
-if (-Not (Test-Path $instdir\$msys2\usr\bin\msys-2.0.dll)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download msys2 basic system failed,"
     Write-Host "- please download it manually from:"
@@ -742,14 +895,14 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\msys-2.0.dll)) {
     exit
 }
 
-$mintty = "$instdir\$msys2\usr\bin\mintty.exe"
+$mintty = "$PSScriptRoot\$msys2\usr\bin\mintty.exe"
 $defaultMintty = "-d -i /msys2.ico "
-if (-Not (Test-Path $instdir\mintty.link)) {
+if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     if ($msys2 -eq "msys32") {
         Write-Host "-------------------------------------------------------------`n"
         Write-Host "rebase $msys2 system`n"
         Write-Host "-------------------------------------------------------------"
-        Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\autorebase.bat
+        Start-Process -Wait -NoNewWindow -FilePath $PSScriptRoot\$msys2\autorebase.bat
     }
     Write-Host "-------------------------------------------------------------"
     Write-Host "- make a first run"
@@ -777,13 +930,15 @@ if (-Not (Test-Path $instdir\mintty.link)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
-    Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\usr\bin\sh.exe -ArgumentList '-lc "pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime"'
+    Start-Process -NoNewWindow -Wait -FilePath $PSScriptRoot\$msys2\usr\bin\sh.exe -ArgumentList '-lc "pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime"'
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "second update"
     Write-Host "-------------------------------------------------------------"
     $(
-        Write-Output "echo -ne `"\033]0;second msys2 update\007`"`r`npacman --noconfirm -Syu --asdeps`r`nexit"
+        Write-Output "echo -ne `"\033]0;second msys2 update\007`""
+    Write-Output "pacman --noconfirm -Syu --asdeps"
+    Write-Output "exit"
     ) | Out-File $build\secondUpdate.sh
     if (Test-Path $build\secondUpdate.log) {
         Remove-Item $build\secondUpdate.log
@@ -793,23 +948,23 @@ if (-Not (Test-Path $instdir\mintty.link)) {
 
     $(
         Write-Output "Set Shell = CreateObject(`"WScript.Shell`")"
-        Write-Output "Set link = Shell.CreateShortcut(`"$instdir\mintty.lnk`")"
+        Write-Output "Set link = Shell.CreateShortcut(`"$PSScriptRoot\mintty.lnk`")"
         Write-Output "link.Arguments = `"-full-path -mingw`""
         Write-Output "link.Description = `"msys2 shell console`""
-        Write-Output "link.TargetPath = `"$instdir\$msys2\msys2_shell.cmd`""
+        Write-Output "link.TargetPath = `"$PSScriptRoot\$msys2\msys2_shell.cmd`""
         Write-Output "link.WindowStyle = 1"
-        Write-Output "link.IconLocation = `"$instdir\$msys2\msys2.ico`""
-        Write-Output "link.WorkingDirectory = `"$instdir\$msys2`""
+        Write-Output "link.IconLocation = `"$PSScriptRoot\$msys2\msys2.ico`""
+        Write-Output "link.WorkingDirectory = `"$PSScriptRoot\$msys2`""
         Write-Output "link.Save"
     ) | Out-File $build\setlink.vbs
     Start-Process -NoNewWindow -Wait -ArgumentList "/nologo $build\setlink.vbs" cscript
     Remove-Item $build\setlink.vbs
 }
-if (-Not (Test-Path $instdir\$msys2\home\$env:UserName)) {
-    mkdir $instdir\$msys2\home\$env:UserName
+if (-Not (Test-Path $PSScriptRoot\$msys2\home\$env:UserName)) {
+    mkdir $PSScriptRoot\$msys2\home\$env:UserName
 }
 
-if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.minttyrc)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\home\$env:UserName\.minttyrc)) {
     $(
         Write-Output "printf '%s\n' Locale=en_US Charset=UTF-8 Font=Consolas Columns=120 Rows=30 > /home/$env:UserName/.minttyrc"
     ) | Out-File $build\mintty.sh
@@ -817,7 +972,7 @@ if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.minttyrc)) {
     Remove-Item $build\mintty.sh
 }
 
-if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.hgrc)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\home\$env:UserName\.hgrc)) {
     $(
         Write-Output "[ui]"
         Write-Output "username = $env:UserName"
@@ -834,10 +989,10 @@ if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.hgrc)) {
         Write-Output "status.deleted = cyan bold"
         Write-Output "status.unknown = blue bold"
         Write-Output "status.ignored = black bold"
-    ) | Out-File $instdir\$msys2\home\$env:UserName\.hgrc
+    ) | Out-File $PSScriptRoot\$msys2\home\$env:UserName\.hgrc
 }
 
-if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.gitconfig)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\home\$env:UserName\.gitconfig)) {
     $(
         Write-Output "[user]"
         Write-Output "name = $env:UserName"
@@ -851,17 +1006,17 @@ if (-Not (Test-Path $instdir\$msys2\home\$env:UserName\.gitconfig)) {
         Write-Output "tool = vimdiff`r`n"
         Write-Output "[push]"
         Write-Output "default = simple"
-    ) | Out-File $instdir\$msys2\home\$env:UserName\.gitconfig
+    ) | Out-File $PSScriptRoot\$msys2\home\$env:UserName\.gitconfig
 }
 
-if (Test-Path $instdir\$msys2\etc\pac-base.pk) {
-    Remove-Item $instdir\$msys2\etc\pac-base.pk
+if (Test-Path $PSScriptRoot\$msys2\etc\pac-base.pk) {
+    Remove-Item $PSScriptRoot\$msys2\etc\pac-base.pk
 }
 foreach ($i in $msyspackages) {
-    Write-Output "$i" | Out-File -Append $instdir\$msys2\etc\pac-base.pk
+    Write-Output "$i  " | Out-File -Append -NoNewline $PSScriptRoot\$msys2\etc\pac-base.pk
 }
 
-if (-Not (Test-Path $instdir\$msys2\usr\bin\make.exe)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\make.exe)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install msys2 base system"
     Write-Host "-------------------------------------------------------------"
@@ -870,7 +1025,7 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\make.exe)) {
     }
     $(
         Write-Output "echo -ne `"\033]0;install base system\007`""
-        Write-Output "msysbasesystem=`"`$(cat /etc/pac-base.pk | tr '\n\r' '  ')`""
+        Write-Output "msysbasesystem=`"`$(cat /etc/pac-base.pk)`""
         Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`""
         Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed"
         Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -S --noconfirm --ask=20 --needed"
@@ -885,7 +1040,7 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\make.exe)) {
     Remove-Item $build\pacman.sh
 }
 
-if ((Get-Item -Path $instdir\$msys2\usr\ssl\cert.pem).Length -eq 0) {
+if ((Get-Item -Path $PSScriptRoot\$msys2\usr\ssl\cert.pem).Length -eq 0) {
     $(
         Write-Output "update-ca-trust"
         Write-Output "sleep 3"
@@ -897,7 +1052,7 @@ if ((Get-Item -Path $instdir\$msys2\usr\ssl\cert.pem).Length -eq 0) {
     Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\cert.log /usr/bin/bash --login $build\cert.sh")
 }
 
-if (-Not (Test-Path $instdir\$msys2\usr\bin\hg.bat)) {
+if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\hg.bat)) {
     $(
         Write-Output "@echo off`n"
         Write-Output "setlocal"
@@ -907,14 +1062,21 @@ if (-Not (Test-Path $instdir\$msys2\usr\bin\hg.bat)) {
         Write-Output "set out=%in: {= `"{%"
         Write-Output "set out=%out:} =}`" %`n"
         Write-Output "%~dp0python2 %~dp0hg %out%"
-    ) | Out-File $instdir\$msys2\usr\bin\hg.bat
+    ) | Out-File $PSScriptRoot\$msys2\usr\bin\hg.bat
 }
 
-if (Test-Path $instdir\$msys2\etc\pac-mingw.pk) {
-    Remove-Item $instdir\$msys2\etc\pac-mingw.pk
+if (Test-Path $PSScriptRoot\$msys2\etc\pac-mingw.pk) {
+    Remove-Item $PSScriptRoot\$msys2\etc\pac-mingw.pk
 }
 foreach ($i in $mingwpackages) {
-    Write-Output "$i" | Out-File -Append $instdir\$msys2\etc\pac-mingw.pk
+    Write-Output "$i" | Out-File -Append $PSScriptRoot\$msys2\etc\pac-mingw.pk
+}
+
+function Get-Compiler {
+    param (
+        [int]$bit
+    )
+
 }
 function Get-32compiler {
     Write-Host "-------------------------------------------------------------"
@@ -957,9 +1119,9 @@ function Get-64compiler {
 }
 
 if ($build32 -eq "yes") {
-    if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
+    if (-Not (Test-Path $PSScriptRoot\$msys2\mingw32\bin\gcc.exe)) {
         Get-32compiler
-        if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
+        if (-Not (Test-Path $PSScriptRoot\$msys2\mingw32\bin\gcc.exe)) {
             Write-Host "-------------------------------------------------------------"
             Write-Host "MinGW32 GCC compiler isn't installed; maybe the download didn't work"
             Write-Host "Do you want to try it again?"
@@ -975,9 +1137,9 @@ if ($build32 -eq "yes") {
 }
 
 if ($build64 -eq "yes") {
-    if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
+    if (-Not (Test-Path $PSScriptRoot\$msys2\mingw64\bin\gcc.exe)) {
         Get-64compiler
-        if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
+        if (-Not (Test-Path $PSScriptRoot\$msys2\mingw64\bin\gcc.exe)) {
             Write-Host "-------------------------------------------------------------"
             Write-Host "MinGW64 GCC compiler isn't installed; maybe the download didn't work"
             Write-Host "Do you want to try it again?"
@@ -1000,11 +1162,11 @@ Set-Location $build
 $scripts = "compile", "helper", "update"
 foreach ($s in $scripts) {
     if (-Not (Test-Path $build\media-suite_$($s).sh)) {
-        Start-Process -NoNewWindow -Wait -FilePath $instdir\$msyspackages\usr\bin\wget.exe -ArgumentList "-t 20 --retry-connrefused --waitretry=2 -c https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
+        Start-Process -NoNewWindow -Wait -FilePath $PSScriptRoot\$msyspackages\usr\bin\wget.exe -ArgumentList "-t 20 --retry-connrefused --waitretry=2 -c https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
     }
 }
-if ($updateSuite) {
-    if (-Not (Test-Path $instdir\update_suite.sh)) {
+if ($updateSuite -eq "yes") {
+    if (-Not (Test-Path $PSScriptRoot\update_suite.sh)) {
         Write-Host "-------------------------------------------------------------"
         Write-Host "Creating suite update file...`n"
         Write-Host "Run this file by dragging it to mintty before the next time you run"
@@ -1017,27 +1179,27 @@ if ($updateSuite) {
         Write-Output "# Run this file by dragging it to mintty shortcut."
         Write-Output "# Be sure the suite is not running before using it!`n"
         Write-Output "update=yes"
-        Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\usr\bin\sed -ArgumentList"-n '/start suite update/,/end suite update/p' $build/media-suite_update.sh"
-    ) | Out-File $instdir\update_suite.sh
+        Start-Process -NoNewWindow -Wait -FilePath $PSScriptRoot\$msys2\usr\bin\sed -ArgumentList"-n '/start suite update/,/end suite update/p' $build/media-suite_update.sh"
+    ) | Out-File $PSScriptRoot\update_suite.sh
 }
 
 # createFolders
 function Write-BaseFolders {
     param (
-        $baseFolder
+        [string]$baseFolder
     )
-    if (-Not (Test-Path $instdir\$baseFolder\share)) {
+    if (-Not (Test-Path $PSScriptRoot\$baseFolder\share -PathType Container)) {
         Write-Host "-------------------------------------------------------------"
         Write-Host "creating $baseFolder-bit install folders"
         Write-Host "-------------------------------------------------------------"
-        mkdir $instdir\$baseFolder\bin
-        mkdir $instdir\$baseFolder\bin-audio
-        mkdir $instdir\$baseFolder\bin-global
-        mkdir $instdir\$baseFolder\bin-video
-        mkdir $instdir\$baseFolder\etc
-        mkdir $instdir\$baseFolder\include
-        mkdir $instdir\$baseFolder\lib\pkgconfig
-        mkdir $instdir\$baseFolder\share
+        mkdir $PSScriptRoot\$baseFolder\bin
+        mkdir $PSScriptRoot\$baseFolder\bin-audio
+        mkdir $PSScriptRoot\$baseFolder\bin-global
+        mkdir $PSScriptRoot\$baseFolder\bin-video
+        mkdir $PSScriptRoot\$baseFolder\etc
+        mkdir $PSScriptRoot\$baseFolder\include
+        mkdir $PSScriptRoot\$baseFolder\lib\pkgconfig
+        mkdir $PSScriptRoot\$baseFolder\share
     }
 }
 if ($build64 -eq "yes") {
@@ -1047,8 +1209,8 @@ if ($build32 -eq "yes") {
     Write-BaseFolders -baseFolder "local32"
 }
 
-$grep = "$instdir\$msys2\usr\bin\grep.exe"
-$fstab = "$instdir\$msys2\etc\fstab"
+$grep = "$PSScriptRoot\$msys2\usr\bin\grep.exe"
+$fstab = "$PSScriptRoot\$msys2\etc\fstab"
 # checkFstab
 function Write-Fstab {
     Write-Host "-------------------------------------------------------------`n"
@@ -1061,24 +1223,24 @@ function Write-Fstab {
         $cygdrive = "no"
     }
     if ($cygdrive -eq "no") {
-        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0" | Out-File $fstab
+        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0`n" | Out-File $fstab
     }
     $(
-        Write-Output "`r`n$instdir\ /trunk"
-        Write-Output "$instdir\build\ /build"
-        Write-Output "$instdir\$msys2\mingw32\ /mingw32"
-        Write-Output "$instdir\$msys2\mingw64\ /mingw64"
+        Write-Output "$PSScriptRoot\ /trunk"
+        Write-Output "$PSScriptRoot\build\ /build"
+        Write-Output "$PSScriptRoot\$msys2\mingw32\ /mingw32"
+        Write-Output "$PSScriptRoot\$msys2\mingw64\ /mingw64"
     ) | Out-File -Append $fstab
     if ($build32 -eq "yes") {
-        Write-Output "$instdir\local32\ /local32" | Out-File -Append $fstab
+        Write-Output "$PSScriptRoot\local32\ /local32" | Out-File -Append $fstab
     }
     if ($build64 -eq "yes") {
-        Write-Output "$instdir\local64\ /local64" | Out-File -Append $fstab
+        Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -Append $fstab
     }
 }
 
 
-if (Test-Path $instdir\$msys2\etc\fstab) {
+if (Test-Path $PSScriptRoot\$msys2\etc\fstab) {
     $removefstab = "no"
 
     Invoke-Expression "$grep build32 $fstab"
@@ -1090,8 +1252,8 @@ if (Test-Path $instdir\$msys2\etc\fstab) {
         $removefstab = "yes"
     }
     $searchRes = $((Get-Content $fstab | Select-String -Pattern "trunk" | Out-String -NoNewline).Split(' ') | Select-Object -Index 0)
-    if ($searchRes -ne $instdir) {
-        $removefstab = "no"
+    if ($searchRes -ne $PSScriptRoot) {
+        $removefstab = "yes"
     }
     Invoke-Expression "$grep local32 $fstab"
     $removefstab = if (($LASTEXITCODE -eq 0) -and ($build32 -eq "no")) {
@@ -1106,6 +1268,9 @@ if (Test-Path $instdir\$msys2\etc\fstab) {
     }
     elseif (($LASTEXITCODE -eq 1) -and ($build64 -eq "yes")) {
         "yes"
+    }
+    else {
+        $removefstab
     }
     if ($removefstab -eq "yes") {
         Remove-Item $fstab
@@ -1126,7 +1291,7 @@ if (Test-Path $build\update_core) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
-    Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\sh.exe -ArgumentList "-l -c `"pacman -S --needed --noconfirm --ask=20 --asdeps bash pacman msys2-runtime"
+    Start-Process -Wait -NoNewWindow -FilePath $PSScriptRoot\$msys2\usr\bin\sh.exe -ArgumentList "-l -c `"pacman -S --needed --noconfirm --ask=20 --asdeps bash pacman msys2-runtime"
     Remove-Item $build\update_core
 }
 
@@ -1134,12 +1299,12 @@ if ($msys -eq "msys32") {
     Write-Host "-------------------------------------------------------------"
     Write-Host "second rebase $msys2 system"
     Write-Host "-------------------------------------------------------------"
-    Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\autorebase.bat
+    Start-Process -NoNewWindow -Wait -FilePath $PSScriptRoot\$msys2\autorebase.bat
 }
 # Write config profiles
 function Write-Profile {
     param (
-        [validateset(64, 32)]$bit
+        [int][validateset(64, 32)]$bit
     )
     $(
         Write-Output "MSYSTEM=MINGW$bit`n"
@@ -1182,7 +1347,7 @@ function Write-Profile {
         Write-Output "stty susp undef`n"
         Write-Output "cd /trunk`n"
         Write-Output "test -f `"`$LOCALDESTDIR/etc/custom_profile`" && source `"`$LOCALDESTDIR/etc/custom_profile`"`n"
-    ) | Out-File -NoNewline -Encoding utf8 $instdir\local$($bit)\etc\profile2.local
+    ) | Out-File -NoNewline -Encoding utf8 $PSScriptRoot\local$($bit)\etc\profile2.local
 }
 
 if ($build32 -eq "yes") {
@@ -1193,10 +1358,10 @@ if ($build64 -eq "yes") {
 }
 
 # loginProfile
-if (Test-Path $instdir\$msys2\etc\profile.pacnew) {
-    Move-Item -Force $instdir\$msys2\etc\profile.pacnew $instdir\$msys2\etc\profile
+if (Test-Path $PSScriptRoot\$msys2\etc\profile.pacnew) {
+    Move-Item -Force $PSScriptRoot\$msys2\etc\profile.pacnew $PSScriptRoot\$msys2\etc\profile
 }
-Start-Process -NoNewWindow -Wait -FilePath $grep -ArgumentList "-e 'profile2.local' $instdir\$msys2\etc\profile"
+Start-Process -NoNewWindow -Wait -FilePath $grep -ArgumentList "-e 'profile2.local' $PSScriptRoot\$msys2\etc\profile"
 if ($LASTEXITCODE -eq 1) {
     $(
         Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then"
@@ -1204,11 +1369,11 @@ if ($LASTEXITCODE -eq 1) {
         Write-Output "elif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then"
         Write-Output "   source /local32/etc/profile2.local"
         Write-Output "fi"
-    ) | Out-File $instdir\$msys2\etc\profile.d\Zab-suite.sh
+    ) | Out-File $PSScriptRoot\$msys2\etc\profile.d\Zab-suite.sh
 }
 
 # compileLocals
-Set-Location $instdir
+Set-Location $PSScriptRoot
 
 if ($build64 -eq "yes") {
     $MSYSTEM = "MINGW64"
@@ -1224,8 +1389,9 @@ if (Test-Path $build\compile.log) {
     Remove-Item $build\compile.log
 }
 
-$compileArguments = "-t `"media-autobuild_suite`" --log $build\compile.log /bin/env SYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.cpuCores) --build32=$($build32) --build64=$($build64) --deleteSource=$($deleteSource) --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$sox --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc'"
+$compileArguments = "-d -i /msys2.ico -t `"media-autobuild_suite`" --log $build\compile.log /bin/env SYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
 
-Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + $compileArguments)
+#Write-Host $compileArguments
+Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $compileArguments
 
 $env:Path = $tempPath
