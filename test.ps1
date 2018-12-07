@@ -8,6 +8,9 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
     exit
 }
 
+# Temporarily store the Path
+$tempPath = $env:Path
+
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
@@ -949,7 +952,7 @@ function Get-64compiler {
     Remove-Item $build\mingw64.sh
 }
 
-if ($build32) {
+if ($build32 -eq "yes") {
     if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
         Get-32compiler
         if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
@@ -967,7 +970,7 @@ if ($build32) {
     }
 }
 
-if ($build64) {
+if ($build64 -eq "yes") {
     if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
         Get-64compiler
         if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
@@ -1014,4 +1017,114 @@ if ($updateSuite) {
     ) | Out-File $instdir\update_suite.sh
 }
 
-# create Folders
+# createFolders
+function Write-BaseFolders {
+    param (
+        $baseFolder
+    )
+    if (-Not (Test-Path $instdir\$baseFolder\share)) {
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "creating $baseFolder-bit install folders"
+        Write-Host "-------------------------------------------------------------"
+        mkdir $instdir\$baseFolder\bin
+        mkdir $instdir\$baseFolder\bin-audio
+        mkdir $instdir\$baseFolder\bin-global
+        mkdir $instdir\$baseFolder\bin-video
+        mkdir $instdir\$baseFolder\etc
+        mkdir $instdir\$baseFolder\include
+        mkdir $instdir\$baseFolder\lib\pkgconfig
+        mkdir $instdir\$baseFolder\share
+    }
+}
+if ($build64 -eq "yes") {
+    Write-BaseFolders -baseFolder "local64"
+}
+if ($build32 -eq "yes") {
+    Write-BaseFolders -baseFolder "local32"
+}
+
+$grep = "$instdir\$msys2\usr\bin\grep.exe"
+$fstab = "$instdir\$msys2\etc\fstab"
+# checkFstab
+function Write-Fstab {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "- write fstab mount file`n"
+    Write-Host "-------------------------------------------------------------"
+    if ((Test-Path $fstab) -and $(Get-Content $fstab | Select-String -Pattern "binary")) {
+        $cygdrive = "yes"
+    }
+    else {
+        $cygdrive = "no"
+    }
+    if ($cygdrive -eq "no") {
+        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0" | Out-File $fstab
+    }
+    $(
+        Write-Output "`r`n$instdir\ /trunk"
+        Write-Output "$instdir\build\ /build"
+        Write-Output "$instdir\$msys2\mingw32\ /mingw32"
+        Write-Output "$instdir\$msys2\mingw64\ /mingw64"
+    ) | Out-File -Append $fstab
+    if ($build32 -eq "yes") {
+        Write-Output "$instdir\local32\ /local32" | Out-File -Append $fstab
+    }
+    if ($build64 -eq "yes") {
+        Write-Output "$instdir\local64\ /local64" | Out-File -Append $fstab
+    }
+}
+
+
+if (Test-Path $instdir\$msys2\etc\fstab) {
+    $removefstab = "no"
+
+    Invoke-Expression "$grep build32 $fstab"
+    if ($LASTEXITCODE -eq 0) {
+        $removefstab = "yes"
+    }
+    Invoke-Expression "$grep trunk $fstab"
+    if ($LASTEXITCODE -eq 1) {
+        $removefstab = "yes"
+    }
+    $searchRes = $((Get-Content $fstab | Select-String -Pattern "trunk" | Out-String -NoNewline).Split(' ') | Select-Object -Index 0)
+    if ($searchRes -ne $instdir) {
+        $removefstab = "no"
+    }
+    Invoke-Expression "$grep local32 $fstab"
+    $removefstab = if (($LASTEXITCODE -eq 0) -and ($build32 -eq "no")) {
+        "yes"
+    }
+    elseif (($LASTEXITCODE -eq 1) -and ($build32 -eq "yes")) {
+        "yes"
+    }
+    Invoke-Expression "$grep local64 $fstab"
+    $removefstab = if (($LASTEXITCODE -eq 0) -and ($build64 -eq "no")) {
+        "yes"
+    }
+    elseif (($LASTEXITCODE -eq 1) -and ($build64 -eq "yes")) {
+        "yes"
+    }
+    if ($removefstab -eq "yes") {
+        Remove-Item $fstab
+        Write-Fstab
+    }
+}
+else {
+    Write-Fstab
+}
+
+# update
+if (Test-Path $build\update.log) {
+    Remove-Item $build\update.log
+}
+Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "-t `"update autobuild suite`" --log $build\update.log /usr/bin/bash -l /build/media-suite_update.sh --build32=$build32 --build64=$build64")
+
+if (Test-Path $build\update_core) {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "critical updates"
+    Write-Host "-------------------------------------------------------------"
+    Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\sh.exe -ArgumentList "-l -c `"pacman -S --needed --noconfirm --ask=20 --asdeps bash pacman msys2-runtime"
+}
+
+#if ((Select-String -Path .\msys64\etc\fstab -Pattern "trunk" | Out-String) -match $($pwd | Out-String | Select-Object -Index 1)) {echo true} else {echo false}
+
+$env:Path = $tempPath

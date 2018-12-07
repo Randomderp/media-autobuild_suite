@@ -1,4 +1,8 @@
-# Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008
+#!/usr/bin/env powershell
+
+$PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
+
+# Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008. Windows XP doesn't even have pause... This section will fail with an error... :crying:
 if ($PSVersionTable.PSVersion.Major -lt 3) {
     Write-Host "Your Powershell version is too low!"
     Write-Host "Please update your version either through an OS update"
@@ -7,12 +11,16 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
     Pause
     exit
 }
+#requires -Version 3.0.0
+
+# Temporarily store the Path
+$tempPath = $env:Path
 
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
 # Place where the script is, main directory
-$instdir = Split-Path -Path $MyInvocation.MyCommand.Path
+$instdir = $PSScriptRoot
 
 # Check if directory has spaces, may be unecessary depending on what requires no space paths
 if (($instdir) -match " ") {
@@ -29,7 +37,7 @@ elseif (($instdir).Length -gt 60) {
     # Check if directory path is longer than 60 characters, may be unecessary depending on what requires paths shorter than 60
     Write-Host "----------------------------------------------------------------------"
     Write-Host "The total filepath to the suite seems too large (larger than 60 characters):`n"
-    Write-Host "$(Split-Path -Path $MyInvocation.MyCommand.Path)`n"
+    Write-Host "$PSScriptRoot`n"
     Write-Host "Some packages might fail building because of it.`n"
     Write-Host "Please move the suite directory closer to the root of your drive and maybe`n"
     Write-Host "rename the suite directory to a smaller name. Examples:`n"
@@ -43,11 +51,11 @@ else {
     Set-Location $instdir
 }
 
-# Set bitness, not build bit. Eq to _bitness
-$bitness = switch ([System.IntPtr]::Size) {
-    4 {32}
-    Default {64}
-}
+# Set bitness, not build bit. Eq to _bitness, may be useless as it seemed to only be used to decide the msys2Arch
+#$bitness = switch ([System.IntPtr]::Size) {
+#    4 {32}
+#    Default {64}
+#}
 
 # Set Build path
 $build = "$($instdir)\build"
@@ -365,7 +373,7 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                 updateSuite {
                     Write-Host "Create script to update suite files automatically?"
                     Write-Host "If you have made changes to the scripts, they will be reset but saved to"
-                    Write-Host "a .diff text file inside $build"
+                    Write-Host "a .diff text file inside $build`n"
                 }
                 forceQuitBatch {
                     Write-Host "Force quit this batch window after launching compilation script?"
@@ -545,11 +553,11 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
             }
             ffmpegB2 {
                 $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                    1 {"nonfree"}
-                    2 {"gplv3"}
-                    3 {"gpl"}
-                    4 {"lgplv3"}
-                    5 {"lgpl"}
+                    1 {"static"}
+                    2 {"no"}
+                    3 {"shared"}
+                    4 {"both"}
+                    5 {"sharedlibs"}
                 }
             }
             ffmpegUpdate {
@@ -850,7 +858,7 @@ if (Test-Path $instdir\$msys2\etc\pac-base.pk) {
     Remove-Item $instdir\$msys2\etc\pac-base.pk
 }
 foreach ($i in $msyspackages) {
-    Write-Output "$i" | Out-File $instdir\$msys2\etc\pac-base.pk
+    Write-Output "$i" | Out-File -Append $instdir\$msys2\etc\pac-base.pk
 }
 
 if (-Not (Test-Path $instdir\$msys2\usr\bin\make.exe)) {
@@ -891,10 +899,333 @@ if ((Get-Item -Path $instdir\$msys2\usr\ssl\cert.pem).Length -eq 0) {
 
 if (-Not (Test-Path $instdir\$msys2\usr\bin\hg.bat)) {
     $(
-        Write-Output
-    )
+        Write-Output "@echo off`n"
+        Write-Output "setlocal"
+        Write-Output "set HG=%~f0`n"
+        Write-Output "set PYTHONHOME="
+        Write-Output "set in=%*"
+        Write-Output "set out=%in: {= `"{%"
+        Write-Output "set out=%out:} =}`" %`n"
+        Write-Output "%~dp0python2 %~dp0hg %out%"
+    ) | Out-File $instdir\$msys2\usr\bin\hg.bat
 }
 
-#(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
-#Invoke-WebRequest https://i.fsbn.eu/pub/wget-pack.exe -o "wget-pack.exe"
-#(get-filehash -algorithm sha256 wget-pack.exe).hash
+if (Test-Path $instdir\$msys2\etc\pac-mingw.pk) {
+    Remove-Item $instdir\$msys2\etc\pac-mingw.pk
+}
+foreach ($i in $mingwpackages) {
+    Write-Output "$i" | Out-File -Append $instdir\$msys2\etc\pac-mingw.pk
+}
+function Get-32compiler {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "install 32 bit compiler"
+    Write-Host "-------------------------------------------------------------"
+    $(
+        Write-Output "echo -ne `"\033]0;install 32 bit compiler\007`""
+        Write-Output "mingw32compiler=`"$`(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-i686-&;g' | tr '\n\r' '  ')`""
+        Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`""
+        Write-Output "echo `$mingw32compiler | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed"
+        Write-Output "echo `$mingw32compiler | xargs `$nargs pacman -S --noconfirm --ask=20 --needed"
+        Write-Output "sleep 3"
+        Write-Output "exit"
+    ) | Out-File $build\mingw32.sh
+    if (Test-Path $build\mingw32.log) {
+        Remove-Item $build\mingw32.log
+    }
+    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\mingw32.log /usr/bin/bash --login $build\mingw32.sh")
+    Remove-Item $build\mingw32.sh
+}
+
+function Get-64compiler {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "install 64 bit compiler"
+    Write-Host "-------------------------------------------------------------"
+    $(
+        Write-Output "echo -ne `"\033]0; install 64 bit compiler\007`""
+        Write-Output "mingw64compiler=`"`$(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-x86_64-&;g' | tr '\n\r' '  ')`""
+        Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`""
+        Write-Output "echo `$mingw64compiler | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed"
+        Write-Output "echo `$mingw64compiler | xargs `$nargs pacman -S --noconfirm --ask=20 --needed"
+        Write-Output "sleep 3"
+        Write-Output "exit"
+    ) | Out-File $build\mingw64.sh
+    if (Test-Path $build\mingw64.log) {
+        Remove-Item $build\mingw64.log
+    }
+    Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + "--log $build\mingw64.log /usr/bin/bash --login $build\mingw64.sh")
+    Remove-Item $build\mingw64.sh
+}
+
+if ($build32 -eq "yes") {
+    if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
+        Get-32compiler
+        if (-Not (Test-Path $instdir\$msys2\mingw32\bin\gcc.exe)) {
+            Write-Host "-------------------------------------------------------------"
+            Write-Host "MinGW32 GCC compiler isn't installed; maybe the download didn't work"
+            Write-Host "Do you want to try it again?"
+            Write-Host "-------------------------------------------------------------"
+            if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
+                Get-32compiler
+            }
+            else {
+                exit
+            }
+        }
+    }
+}
+
+if ($build64 -eq "yes") {
+    if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
+        Get-64compiler
+        if (-Not (Test-Path $instdir\$msys2\mingw64\bin\gcc.exe)) {
+            Write-Host "-------------------------------------------------------------"
+            Write-Host "MinGW64 GCC compiler isn't installed; maybe the download didn't work"
+            Write-Host "Do you want to try it again?"
+            Write-Host "-------------------------------------------------------------"
+            if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
+                Get-64compiler
+            }
+            else {
+                exit
+            }
+        }
+    }
+}
+
+# updatebase
+Write-Host "-------------------------------------------------------------"
+Write-Host "update autobuild suite"
+Write-Host "-------------------------------------------------------------"
+Set-Location $build
+$scripts = "compile", "helper", "update"
+foreach ($s in $scripts) {
+    if (-Not (Test-Path $build\media-suite_$($s).sh)) {
+        Start-Process -NoNewWindow -Wait -FilePath $instdir\$msyspackages\usr\bin\wget.exe -ArgumentList "-t 20 --retry-connrefused --waitretry=2 -c https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
+    }
+}
+if ($updateSuite) {
+    if (-Not (Test-Path $instdir\update_suite.sh)) {
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "Creating suite update file...`n"
+        Write-Host "Run this file by dragging it to mintty before the next time you run"
+        Write-Host "the suite and before reporting an issue.`n"
+        Write-Host "It needs to be run separately and with the suite not running!"
+        Write-Host "-------------------------------------------------------------"
+    }
+    $(
+        Write-Output "#!/bin/bash`n"
+        Write-Output "# Run this file by dragging it to mintty shortcut."
+        Write-Output "# Be sure the suite is not running before using it!`n"
+        Write-Output "update=yes"
+        Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\usr\bin\sed -ArgumentList"-n '/start suite update/,/end suite update/p' $build/media-suite_update.sh"
+    ) | Out-File $instdir\update_suite.sh
+}
+
+# createFolders
+function Write-BaseFolders {
+    param (
+        $baseFolder
+    )
+    if (-Not (Test-Path $instdir\$baseFolder\share)) {
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "creating $baseFolder-bit install folders"
+        Write-Host "-------------------------------------------------------------"
+        mkdir $instdir\$baseFolder\bin
+        mkdir $instdir\$baseFolder\bin-audio
+        mkdir $instdir\$baseFolder\bin-global
+        mkdir $instdir\$baseFolder\bin-video
+        mkdir $instdir\$baseFolder\etc
+        mkdir $instdir\$baseFolder\include
+        mkdir $instdir\$baseFolder\lib\pkgconfig
+        mkdir $instdir\$baseFolder\share
+    }
+}
+if ($build64 -eq "yes") {
+    Write-BaseFolders -baseFolder "local64"
+}
+if ($build32 -eq "yes") {
+    Write-BaseFolders -baseFolder "local32"
+}
+
+$grep = "$instdir\$msys2\usr\bin\grep.exe"
+$fstab = "$instdir\$msys2\etc\fstab"
+# checkFstab
+function Write-Fstab {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "- write fstab mount file`n"
+    Write-Host "-------------------------------------------------------------"
+    if ((Test-Path $fstab) -and $(Get-Content $fstab | Select-String -Pattern "binary")) {
+        $cygdrive = "yes"
+    }
+    else {
+        $cygdrive = "no"
+    }
+    if ($cygdrive -eq "no") {
+        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0" | Out-File $fstab
+    }
+    $(
+        Write-Output "`r`n$instdir\ /trunk"
+        Write-Output "$instdir\build\ /build"
+        Write-Output "$instdir\$msys2\mingw32\ /mingw32"
+        Write-Output "$instdir\$msys2\mingw64\ /mingw64"
+    ) | Out-File -Append $fstab
+    if ($build32 -eq "yes") {
+        Write-Output "$instdir\local32\ /local32" | Out-File -Append $fstab
+    }
+    if ($build64 -eq "yes") {
+        Write-Output "$instdir\local64\ /local64" | Out-File -Append $fstab
+    }
+}
+
+
+if (Test-Path $instdir\$msys2\etc\fstab) {
+    $removefstab = "no"
+
+    Invoke-Expression "$grep build32 $fstab"
+    if ($LASTEXITCODE -eq 0) {
+        $removefstab = "yes"
+    }
+    Invoke-Expression "$grep trunk $fstab"
+    if ($LASTEXITCODE -eq 1) {
+        $removefstab = "yes"
+    }
+    $searchRes = $((Get-Content $fstab | Select-String -Pattern "trunk" | Out-String -NoNewline).Split(' ') | Select-Object -Index 0)
+    if ($searchRes -ne $instdir) {
+        $removefstab = "no"
+    }
+    Invoke-Expression "$grep local32 $fstab"
+    $removefstab = if (($LASTEXITCODE -eq 0) -and ($build32 -eq "no")) {
+        "yes"
+    }
+    elseif (($LASTEXITCODE -eq 1) -and ($build32 -eq "yes")) {
+        "yes"
+    }
+    Invoke-Expression "$grep local64 $fstab"
+    $removefstab = if (($LASTEXITCODE -eq 0) -and ($build64 -eq "no")) {
+        "yes"
+    }
+    elseif (($LASTEXITCODE -eq 1) -and ($build64 -eq "yes")) {
+        "yes"
+    }
+    if ($removefstab -eq "yes") {
+        Remove-Item $fstab
+        Write-Fstab
+    }
+}
+else {
+    Write-Fstab
+}
+
+# update
+if (Test-Path $build\update.log) {
+    Remove-Item $build\update.log
+}
+Start-Process -Wait -NoNewWindow -FilePath $mintty -ArgumentList $($defaultMintty + "-t `"update autobuild suite`" --log $build\update.log /usr/bin/bash -l /build/media-suite_update.sh --build32=$build32 --build64=$build64")
+
+if (Test-Path $build\update_core) {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "critical updates"
+    Write-Host "-------------------------------------------------------------"
+    Start-Process -Wait -NoNewWindow -FilePath $instdir\$msys2\usr\bin\sh.exe -ArgumentList "-l -c `"pacman -S --needed --noconfirm --ask=20 --asdeps bash pacman msys2-runtime"
+    Remove-Item $build\update_core
+}
+
+if ($msys -eq "msys32") {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "second rebase $msys2 system"
+    Write-Host "-------------------------------------------------------------"
+    Start-Process -NoNewWindow -Wait -FilePath $instdir\$msys2\autorebase.bat
+}
+# Write config profiles
+function Write-Profile {
+    param (
+        [validateset(64, 32)]$bit
+    )
+    $(
+        Write-Output "MSYSTEM=MINGW$bit`n"
+        Write-Output "source /etc/msystem`n`n"
+        Write-Output "# package build directory`n"
+        Write-Output "LOCALBUILDDIR=/build`n"
+        Write-Output "# package installation prefix`n"
+        Write-Output "LOCALDESTDIR=/local$bit`n"
+        Write-Output "export LOCALBUILDDIR LOCALDESTDIR`n`n"
+        Write-Output "bits='$($bit)bit'`n`n"
+        Write-Output "alias dir='ls -la --color=auto'`n"
+        Write-Output "alias ls='ls --color=auto'`n"
+        Write-Output "export CC=gcc`n`n"
+        Write-Output "CARCH=`"`$`{MINGW_CHOST%%%%-*`}`"`n"
+        Write-Output "CPATH=`"``cygpath -m `$LOCALDESTDIR/include``;``cygpath -m `$MINGW_PREFIX/include```"`n"
+        Write-Output "LIBRARY_PATH=`"``cygpath -m `$LOCALDESTDIR/lib``;``cygpath -m `$MINGW_PREFIX/lib```"`n"
+        Write-Output "export CPATH LIBRARY_PATH`n`n"
+        Write-Output "MANPATH=`"`$`{LOCALDESTDIR`}/share/man:`$`{MINGW_PREFIX`}/share/man:/usr/share/man`"`n"
+        Write-Output "INFOPATH=`"`$`{LOCALDESTDIR`}/share/info:`$`{MINGW_PREFIX`}/share/info:/usr/share/info`"`n`n"
+        Write-Output "DXSDK_DIR=`"`$`{MINGW_PREFIX`}/`$`{MINGW_CHOST`}`"`n"
+        Write-Output "ACLOCAL_PATH=`"`$`{LOCALDESTDIR`}/share/aclocal:`$`{MINGW_PREFIX`}/share/aclocal:/usr/share/aclocal`"`n"
+        Write-Output "PKG_CONFIG=`"`$`{MINGW_PREFIX`}/bin/pkg-config --static`"`n"
+        Write-Output "PKG_CONFIG_PATH=`"`$`{LOCALDESTDIR`}/lib/pkgconfig:`$`{MINGW_PREFIX`}/lib/pkgconfig`"`n"
+        Write-Output "CPPFLAGS=`"-D_FORTIFY_SOURCE=2 -D__USE_MINGW_ANSI_STDIO=1`"`n"
+        Write-Output "CFLAGS=`"-mthreads -mtune=generic -O2 -pipe`"`n"
+        Write-Output "CXXFLAGS=`"`$`{CFLAGS`}`"`n"
+        Write-Output "LDFLAGS=`"-pipe -static-libgcc -static-libstdc++`"`n"
+        Write-Output "export DXSDK_DIR ACLOCAL_PATH PKG_CONFIG PKG_CONFIG_PATH CPPFLAGS CFLAGS CXXFLAGS LDFLAGS MSYSTEM`n`n"
+        Write-Output "export CARGO_HOME=`"/opt/cargo`" RUSTUP_HOME=`"/opt/cargo`"`n`n"
+        Write-Output "export PYTHONPATH=`n`n"
+        Write-Output "LANG=en_US.UTF-8`n"
+        Write-Output "PATH=`"`$`{LOCALDESTDIR`}/bin:`$`{MINGW_PREFIX`}/bin:`$`{INFOPATH`}:`$`{MSYS2_PATH`}:`$`{ORIGINAL_PATH`}`"`n"
+        Write-Output "PATH=`"`$`{LOCALDESTDIR`}/bin-audio:`$`{LOCALDESTDIR`}/bin-global:`$`{LOCALDESTDIR`}/bin-video:`$`{PATH`}`"`n"
+        Write-Output "PATH=`"/opt/cargo/bin:/opt/bin:`$`{PATH`}`"`n"
+        Write-Output "source '/etc/profile.d/perlbin.sh'`n"
+        Write-Output "PS1='\[\033[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\n\$ '`n"
+        Write-Output "HOME=`"/home/`$`{USERNAME`}`"`n"
+        Write-Output "GIT_GUI_LIB_DIR=``cygpath -w /usr/share/git-gui/lib```n"
+        Write-Output "export LANG PATH PS1 HOME GIT_GUI_LIB_DIR`n"
+        Write-Output "stty susp undef`n"
+        Write-Output "cd /trunk`n"
+        Write-Output "test -f `"`$LOCALDESTDIR/etc/custom_profile`" && source `"`$LOCALDESTDIR/etc/custom_profile`"`n"
+    ) | Out-File -NoNewline -Encoding utf8 $instdir\local$($bit)\etc\profile2.local
+}
+
+if ($build32 -eq "yes") {
+    Write-Profile -bit 32
+}
+if ($build64 -eq "yes") {
+    Write-Profile -bit 64
+}
+
+# loginProfile
+if (Test-Path $instdir\$msys2\etc\profile.pacnew) {
+    Move-Item -Force $instdir\$msys2\etc\profile.pacnew $instdir\$msys2\etc\profile
+}
+Start-Process -NoNewWindow -Wait -FilePath $grep -ArgumentList "-e 'profile2.local' $instdir\$msys2\etc\profile"
+if ($LASTEXITCODE -eq 1) {
+    $(
+        Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then"
+        Write-Output "   source /local64/etc/profile2.local"
+        Write-Output "elif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then"
+        Write-Output "   source /local32/etc/profile2.local"
+        Write-Output "fi"
+    ) | Out-File $instdir\$msys2\etc\profile.d\Zab-suite.sh
+}
+
+# compileLocals
+Set-Location $instdir
+
+if ($build64 -eq "yes") {
+    $MSYSTEM = "MINGW64"
+}
+else {
+    $MSYSTEM = "MINGW32"
+}
+
+$Host.UI.RawUI.WindowTitle = "MABSbat"
+$ourPID = $PID
+
+if (Test-Path $build\compile.log) {
+    Remove-Item $build\compile.log
+}
+
+$compileArguments = "-t `"media-autobuild_suite`" --log $build\compile.log /bin/env SYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.cpuCores) --build32=$($build32) --build64=$($build64) --deleteSource=$($deleteSource) --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$sox --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc'"
+
+Start-Process -NoNewWindow -Wait -FilePath $mintty -ArgumentList $($defaultMintty + $compileArguments)
+
+$env:Path = $tempPath
