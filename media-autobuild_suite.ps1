@@ -18,13 +18,8 @@ $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 # Temporarily store the Path
 $tempPath = $env:Path
 
-
-
-# Place where the script is, main directory
-#$PSScriptRoot = $PSScriptRoot
-
 # Check if directory has spaces, may be unecessary depending on what requires no space paths
-if (($PSScriptRoot) -match " ") {
+if ($PSScriptRoot -match " ") {
     Write-Host "----------------------------------------------------------------------"
     Write-Host "You have probably run the script in a path with spaces.`n"
     Write-Host "This is not supported.`n"
@@ -34,7 +29,7 @@ if (($PSScriptRoot) -match " ") {
     Pause
     exit
 }
-elseif (($PSScriptRoot).Length -gt 60) {
+elseif ($PSScriptRoot.Length -gt 60) {
     # Check if directory path is longer than 60 characters, may be unecessary depending on what requires paths shorter than 60
     Write-Host "----------------------------------------------------------------------"
     Write-Host "The total filepath to the suite seems too large (larger than 60 characters):`n"
@@ -53,19 +48,19 @@ else {
 }
 
 # Set bitness, not build bit. Eq to _bitness, may be useless as it seemed to only be used to decide the msys2Arch
-#$bitness = switch ([System.IntPtr]::Size) {
-#    4 {32}
-#    Default {64}
-#}
-
-# Set Build path
-$build = "$($PSScriptRoot)\build"
-if (-Not (Test-Path $build -PathType Container)) {
-    mkdir -Name "build" -Path $PSScriptRoot 2>&1 | Out-Null
+$bitness = switch ([System.IntPtr]::Size) {
+    4 {32}
+    Default {64}
 }
 
+# Set Build path
+$build = "$PSScriptRoot\build"
+if (-Not (Test-Path $build -PathType Container)) {
+    mkdir -Name "build" -Path $PSScriptRoot -Force | Out-Null
+}
+$json = "$build\media-autobuild_suite.json"
+
 # Set package variables
-# change ini options to PSObject+json later
 $msyspackages = "asciidoc", "autoconf", "automake-wrapper", "autogen", "bison", "diffstat", "dos2unix", "help2man", "intltool", "libtool", "patch", "python", "xmlto", "make", "zip", "unzip", "git", "subversion", "wget", "p7zip", "mercurial", "man-db", "gperf", "winpty", "texinfo", "gyp-git", "doxygen", "autoconf-archive", "itstool", "ruby", "mintty"
 $mingwpackages = "cmake", "dlfcn", "libpng", "gcc", "nasm", "pcre", "tools-git", "yasm", "ninja", "pkg-config", "meson"
 $ffmpeg_options_builtin = "--disable-autodetect", "amf", "bzlib", "cuda", "cuvid", "d3d11va", "dxva2", "iconv", "lzma", "nvenc", "schannel", "zlib", "sdl2", "--disable-debug", "ffnvcodec", "nvdec"
@@ -77,45 +72,45 @@ $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
 
 $jsonObjects = [PSCustomObject]@{
-    msys2Arch      = switch ([System.IntPtr]::Size) {
+    msys2Arch    = switch ([System.IntPtr]::Size) {
         4 {1}
         default {2}
     }
-    arch           = 0
-    license2       = 0
-    standalone     = 0
-    vpx2           = 0
-    aom            = 0
-    rav1e          = 0
-    dav1d          = 0
-    x2643          = 0
-    x2652          = 0
-    other265       = 0
-    vvc            = 0
-    flac           = 0
-    fdkaac         = 0
-    faac           = 0
-    mediainfo      = 0
-    soxB           = 0
-    ffmpegB2       = 0
-    ffmpegUpdate   = 0
-    ffmpegChoice   = 0
-    mp4box         = 0
-    rtmpdump       = 0
-    mplayer2       = 0
-    mpv            = 0
-    bmx            = 0
-    curl           = 0
-    ffmbc          = 0
-    cyanrip2       = 0
-    redshift       = 0
-    ripgrep        = 0
-    cores          = 0
-    deleteSource   = 0
-    strip          = 0
-    pack           = 0
-    logging        = 0
-    updateSuite    = 0
+    arch         = 0
+    license2     = 0
+    standalone   = 0
+    vpx2         = 0
+    aom          = 0
+    rav1e        = 0
+    dav1d        = 0
+    x2643        = 0
+    x2652        = 0
+    other265     = 0
+    vvc          = 0
+    flac         = 0
+    fdkaac       = 0
+    faac         = 0
+    mediainfo    = 0
+    soxB         = 0
+    ffmpegB2     = 0
+    ffmpegUpdate = 0
+    ffmpegChoice = 0
+    mp4box       = 0
+    rtmpdump     = 0
+    mplayer2     = 0
+    mpv          = 0
+    bmx          = 0
+    curl         = 0
+    ffmbc        = 0
+    cyanrip2     = 0
+    redshift     = 0
+    ripgrep      = 0
+    cores        = 0
+    deleteSource = 0
+    strip        = 0
+    pack         = 0
+    logging      = 0
+    updateSuite  = 0
 }
 $order = [PSCustomObject]@{
     10 = "msys2Arch"
@@ -157,9 +152,6 @@ $order = [PSCustomObject]@{
 }
 $writeProperties = $false
 
-#$previousOptions = $false # redundant, probably
-#$msys2ArchINI = 0 # also redundant, probably
-$json = "$build\media-autobuild_suite.json"
 $coresrecommend = switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors) {
     1 {1}
     Default {
@@ -169,7 +161,7 @@ $coresrecommend = switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').Nu
 
 if (Test-Path -Path $json) {
     $jsonProperties = Get-Content $json | ConvertFrom-Json
-    foreach ($a in (Get-Member -InputObject $jsonObjects -MemberType NoteProperty | Select-Object -ExpandProperty Name)) {
+    foreach ($a in ($jsonObjects.psobject.Properties).Name) {
         if ($jsonProperties.$a -ne 0) {
             $jsonObjects.$a = $jsonProperties.$a
         }
@@ -181,22 +173,20 @@ if (Test-Path -Path $json) {
 else {
     #initialize json file
     $jsonObjects | ConvertTo-Json | Out-File $json
-
     $writeProperties = $true
 }
 
-#Select-Object -InputObject $jsonObjects -Property $a
-
+#($jsonObjects.psobject.Properties).Item("rav1e").Value
 # sytemVars
-foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select-Object -ExpandProperty Name)) {
-    $a = Get-Member -Name $($order.$b) -InputObject $jsonObjects | Select-Object -ExpandProperty Name
+foreach ($b in ($order.psobject.Properties).Name) {
+    $a = $order.$b
     if ($a -eq "msys2Arch") {
         $msys2 = switch ($jsonObjects.msys2Arch) {
             1 {"msys32"}
             2 {"msys64"}
         }
     }
-    elseif (0 -eq ($jsonObjects.$("$a"))) {
+    elseif ($jsonObjects.$a -eq 0) {
         while (1..$(
                 switch ($a) {
                     arch {3}
@@ -211,7 +201,7 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                     cores {99}
                     Default {2}
                 }
-            ) -notcontains $jsonObjects.$("$a")) {
+            ) -notcontains $jsonObjects.$a) {
             Write-host "-------------------------------------------------------------------------------"
             Write-host "-------------------------------------------------------------------------------`n"
             switch ($a) {
@@ -466,7 +456,7 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
             }
             Write-host "-------------------------------------------------------------------------------"
             Write-host "-------------------------------------------------------------------------------"
-            $jsonObjects.$("$a") = [int](
+            $jsonObjects.$a = [int](
                 Read-Host -Prompt $(
                     switch ($a) {
                         arch {"Build System: "}
@@ -822,10 +812,10 @@ if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\wget.exe)) {
     if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
         while (-Not (Test-Path $build\wget.exe)) {
             $progressPreference = 'silentlyContinue'
-            if (Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 6>$null 2>$null) {
+            if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 6>$null)) {
                 Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
             }
-            elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 6>$null 2>$null) {
+            elseif ($(Test-Connection -Quiet -ComputerName randomderp.com -Count 1 6>$null)) {
                 Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
             }
             else {
@@ -1374,9 +1364,6 @@ if ($build64 -eq "yes") {
 else {
     $MSYSTEM = "MINGW32"
 }
-
-$Host.UI.RawUI.WindowTitle = "MABSbat"
-$ourPID = $PID
 
 if (Test-Path $build\compile.log) {
     Remove-Item $build\compile.log
