@@ -12,12 +12,13 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
     exit
 }
 #requires -Version 3.0.0
+# Set window title
+$Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
 # Temporarily store the Path
 $tempPath = $env:Path
 
-# Set window title
-$Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
+
 
 # Place where the script is, main directory
 #$PSScriptRoot = $PSScriptRoot
@@ -115,7 +116,6 @@ $jsonObjects = [PSCustomObject]@{
     pack           = 0
     logging        = 0
     updateSuite    = 0
-    forceQuitBatch = 0
 }
 $order = [PSCustomObject]@{
     10 = "msys2Arch"
@@ -154,7 +154,6 @@ $order = [PSCustomObject]@{
     43 = "pack"
     44 = "logging"
     45 = "updateSuite"
-    46 = "forceQuitBatch"
 }
 $writeProperties = $false
 
@@ -375,11 +374,6 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                     Write-Host "If you have made changes to the scripts, they will be reset but saved to"
                     Write-Host "a .diff text file inside $build`n"
                 }
-                forceQuitBatch {
-                    Write-Host "Force quit this batch window after launching compilation script?"
-                    Write-Host "This will forcibly close this batch window. Only use this if you have the issue"
-                    Write-Host "where the window doesn't close after launching the compilation script.`n"
-                }
                 Default {}
             }
             switch ($a) {
@@ -494,7 +488,6 @@ foreach ($b in (Get-Member -InputObject $order -MemberType NoteProperty | Select
                         pack {"Pack files: "}
                         logging {"Write logs: "}
                         updateSuite {"Create update script: "}
-                        forceQuitBatch {"Forcefully close batch: "}
                         Default {"Build $($a): "}
                     }
                 )
@@ -937,8 +930,8 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     Write-Host "-------------------------------------------------------------"
     $(
         Write-Output "echo -ne `"\033]0;second msys2 update\007`""
-    Write-Output "pacman --noconfirm -Syu --asdeps"
-    Write-Output "exit"
+        Write-Output "pacman --noconfirm -Syu --asdeps"
+        Write-Output "exit"
     ) | Out-File $build\secondUpdate.sh
     if (Test-Path $build\secondUpdate.log) {
         Remove-Item $build\secondUpdate.log
@@ -1347,7 +1340,7 @@ function Write-Profile {
         Write-Output "stty susp undef`n"
         Write-Output "cd /trunk`n"
         Write-Output "test -f `"`$LOCALDESTDIR/etc/custom_profile`" && source `"`$LOCALDESTDIR/etc/custom_profile`"`n"
-    ) | Out-File -NoNewline -Encoding utf8 $PSScriptRoot\local$($bit)\etc\profile2.local
+    ) | Out-File -NoNewline $PSScriptRoot\local$($bit)\etc\profile2.local
 }
 
 if ($build32 -eq "yes") {
