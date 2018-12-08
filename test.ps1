@@ -15,10 +15,6 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
-# Temporarily store the Path
-$tempPath = $env:Path
-$env:Path = '/usr/local/bin:/usr/bin:/bin:/opt/bin:/c/Windows/System32:/c/Windows:/c/Windows/System32/WindowsPowerShell/v1.0/:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl'
-
 # Check if directory has spaces, may be unecessary depending on what requires no space paths
 if ($PSScriptRoot -match " ") {
     Write-Host "----------------------------------------------------------------------"
@@ -47,6 +43,10 @@ elseif ($PSScriptRoot.Length -gt 60) {
 else {
     Set-Location $PSScriptRoot
 }
+
+# Temporarily store the Path
+$tempPath = $env:Path
+$env:Path = "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
 
 # Set bitness, not build bit. Eq to _bitness, may be useless as it seemed to only be used to decide the msys2Arch
 #$bitness = switch ([System.IntPtr]::Size) {
@@ -805,7 +805,6 @@ foreach ($b in ($order.psobject.Properties).Name) {
 # EOQuestions
 
 $msys2Path = "$PSScriptRoot\$msys2"
-$mintty = "$msys2Path\usr\bin\mintty.exe"
 $bash = "$msys2Path\usr\bin\bash.exe"
 
 # msys2 system
@@ -891,14 +890,14 @@ function Write-BaseFolders {
         Write-Host "-------------------------------------------------------------"
         Write-Host "creating $baseFolder-bit install folders"
         Write-Host "-------------------------------------------------------------"
-        mkdir $PSScriptRoot\$baseFolder\bin
-        mkdir $PSScriptRoot\$baseFolder\bin-audio
-        mkdir $PSScriptRoot\$baseFolder\bin-global
-        mkdir $PSScriptRoot\$baseFolder\bin-video
-        mkdir $PSScriptRoot\$baseFolder\etc
-        mkdir $PSScriptRoot\$baseFolder\include
-        mkdir $PSScriptRoot\$baseFolder\lib\pkgconfig
-        mkdir $PSScriptRoot\$baseFolder\share
+        mkdir $PSScriptRoot\$baseFolder\bin *>$null
+        mkdir $PSScriptRoot\$baseFolder\bin-audio *>$null
+        mkdir $PSScriptRoot\$baseFolder\bin-global *>$null
+        mkdir $PSScriptRoot\$baseFolder\bin-video *>$null
+        mkdir $PSScriptRoot\$baseFolder\etc *>$null
+        mkdir $PSScriptRoot\$baseFolder\include *>$null
+        mkdir $PSScriptRoot\$baseFolder\lib\pkgconfig *>$null
+        mkdir $PSScriptRoot\$baseFolder\share *>$null
     }
 }
 if ($build64 -eq "yes") {
@@ -971,18 +970,27 @@ else {
 }
 
 if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
-    Write-Host "-------------------------------------------------------------`n"
-    Write-Host "rebase $msys2 system`n"
-    Write-Host "-------------------------------------------------------------"
-    Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
-
+    Set-Location $msys2Path
+    if ($msys2 -eq "msys32") {
+        Write-Host "-------------------------------------------------------------`n"
+        Write-Host "rebase $msys2 system`n"
+        Write-Host "-------------------------------------------------------------"
+        Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
+    }
     Write-Host "-------------------------------------------------------------"
     Write-Host "- make a first run"
     Write-Host "-------------------------------------------------------------"
     if (Test-Path $build\firstrun.log) {
         Remove-Item $build\firstrun.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c exit 2>&1"  -RedirectStandardOutput $build\firstrun.log
+    Start-Job -Name "firstRun" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "exit", "2>&1"
+    } | Receive-Job -Wait | Tee-Object $build\firstrun.log
 
     Write-Fstab
 
@@ -998,7 +1006,14 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     if (Test-Path $build\firstUpdate.log) {
         Remove-Item $build\firstUpdate.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c /build/fistUpdate.sh 2>&1"  -RedirectStandardOutput $build\firstUpdate.log
+    Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "/build/firstUpdate.sh", "2>&1"
+    } | Receive-Job -Wait | Tee-Object $build\firstUpdate.log
     Remove-Item $build\firstUpdate.sh
 
     Write-Host "-------------------------------------------------------------"
@@ -1007,7 +1022,14 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     if (Test-Path $build\criticalUpdate.log) {
         Remove-Item $build\criticalUpdate.log
     }
-    Start-Process -NoNewWindow -Wait -FilePath $bash -ArgumentList "--login -c `"pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime`" 2>&1" -RedirectStandardOutput $build\criticalUpdate.log
+    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "`"pacman", "-S", "--needed", "--ask=20", "--noconfirm", "--asdeps", "bash", "pacman", "msys2-runtime`"", "2>&1"
+    } | Receive-Job -Wait | Tee-Object $build\criticalUpdate.log
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "second update"
@@ -1021,7 +1043,14 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     if (Test-Path $build\secondUpdate.log) {
         Remove-Item $build\secondUpdate.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c /build/secondUpdate.sh 2>&1"  -RedirectStandardOutput $build\firstUpdate.log
+    Start-Job -Name "secondUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "/build/secondUpdate.sh", "2>&1"
+    } | Receive-Job -Wait | Tee-Object $build\secondUpdate.log
     Remove-Item $build\secondUpdate.sh
 
     # equivalent to setlink.vbs
@@ -1034,6 +1063,7 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     $link.IconLocation = "$msys2Path\msys2.ico"
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
+    Set-Location $build
 }
 if (-Not (Test-Path $msys2Path\home\$env:UserName)) {
     mkdir $msys2Path\home\$env:UserName
@@ -1113,7 +1143,14 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     if (Test-Path $build\pacman.log) {
         Remove-Item $build\pacman.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c /build/pacman.sh 2>&1"  -RedirectStandardOutput $build\pacman.log
+    Start-Job -Name "installMsys2" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "/build/pacman.sh", "2>&1"
+    } | Receive-Job -Wait | Tee-Object $build\pacman.log
     Remove-Item $build\pacman.sh
 }
 
@@ -1121,7 +1158,14 @@ if ((Get-Item -Path $msys2Path\usr\ssl\cert.pem).Length -eq 0) {
     if (Test-Path $build\cert.log) {
         Remove-Item $build\cert.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c `"update-ca-trust; exit`" 2>&1"  -RedirectStandardOutput $build\cert.log
+    Start-Job -Name "cert" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "`"update-ca-trust; exit`"", "2>&1"
+    } | Receive-Job -Wait | Tee-Object $build\cert.log
 }
 
 if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
@@ -1165,7 +1209,14 @@ function Get-Compiler {
             if (Test-Path $build\mingw32.log) {
                 Remove-Item $build\mingw32.log
             }
-            Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c /build/mingw32.sh"  -RedirectStandardOutput $build\mingw32.log
+            Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
+                param(
+                    $bash,
+                    $msys2Path
+                )
+                Set-Location $msys2Path
+                & $bash "--login", "-c", "/build/mingw32.sh", "2>&1"
+            } | Receive-Job -Wait | Tee-Object $build\mingw32.log
             Remove-Item $build\mingw32.sh
         }
         Default {
@@ -1184,7 +1235,14 @@ function Get-Compiler {
             if (Test-Path $build\mingw64.log) {
                 Remove-Item $build\mingw64.log
             }
-            Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c /build/mingw64.sh"  -RedirectStandardOutput $build\mingw64.log
+            Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
+                param(
+                    $bash,
+                    $msys2Path
+                )
+                Set-Location $msys2Path
+                & $bash "--login", "-c", "/build/mingw64.sh", "2>&1"
+            } | Receive-Job -Wait | Tee-Object $build\mingw64.log
             Remove-Item $build\mingw64.sh
         }
     }
@@ -1246,7 +1304,7 @@ if ($updateSuite -eq "yes") {
         Write-Host "It needs to be run separately and with the suite not running!"
         Write-Host "-------------------------------------------------------------"
     }
-    Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\sed -ArgumentList "-n '/start suite update/,/end suite update/p' /build/media-suite_update.sh 2>&1" -RedirectStandardOutput $PSScriptRoot\temp.sh
+    Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\sed -ArgumentList "-n '/start suite update/,/end suite update/p' /build/media-suite_update.sh" -RedirectStandardOutput $PSScriptRoot\temp.sh
     $(
         Write-Output "#!/bin/bash`n`n"
         Write-Output "# Run this file by dragging it to mintty shortcut.`n"
@@ -1261,7 +1319,16 @@ if ($updateSuite -eq "yes") {
 if (Test-Path $build\update.log) {
     Remove-Item $build\update.log
 }
-Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c /build/media-suite_update.sh --build32=$build32 --build64=$build64 2>&1"  -RedirectStandardOutput $build\update.log
+Start-Job -Name "update" -ArgumentList $bash, $msys2Path, $build32, $build64 -ScriptBlock {
+    param(
+        $bash,
+        $msys2Path,
+        $build32,
+        $build64
+    )
+    Set-Location $msys2Path
+    & $bash "--login" "-c" "`"/build/media-suite_update.sh" "--build32=$build32" "--build64=$build64`"" "2>&1"
+} | Receive-Job -Wait | Tee-Object $build\update.log
 
 if (Test-Path $build\update_core) {
     Write-Host "-------------------------------------------------------------"
@@ -1270,7 +1337,14 @@ if (Test-Path $build\update_core) {
     if (Test-Path $build\update_core.log) {
         Remove-Item $build\update_core.log
     }
-    Start-Process -Wait -NoNewWindow -FilePath $bash -WorkingDirectory $msys2Path -ArgumentList "--login -c `"pacman -S --needed --noconfirm --ask=20 --asdeps bash pacman msys2-runtime`" 2>&1"  -RedirectStandardOutput $build\update_core.log
+    Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path
+        )
+        Set-Location $msys2Path
+        & $bash "--login", "-c", "`"pacman -S --needed --noconfirm --ask=20 --asdeps bash pacman msys2-runtime`"", "2>&1s"
+    } | Receive-Job -Wait | Tee-Object $build\update_core.log
     Remove-Item $build\update_core
 }
 
@@ -1365,9 +1439,15 @@ if (Test-Path $build\compile.log) {
 $env:MSYSTEM = $MSYSTEM
 $env:MSYS2_PATH_TYPE = "inherit"
 
-$compileArguments = "--login -c /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc 2>&1"
+$compileArguments = "--login", "-c", "/build/media-suite_compile.sh", "--cpuCount=$cores", "--build32=$build32", "--build64=$build64", "--deleteSource=$deleteSource", "--mp4box=$mp4box", "--vpx=$vpx2", "--x264=$x2643", "--x265=$x2652", "--other265=$other265", "--flac=$flac", "--fdkaac=$fdkaac", "--mediainfo=$mediainfo", "--sox=$soxB", "--ffmpeg=$ffmpeg", "--ffmpegUpdate=$ffmpegUpdate", "--ffmpegChoice=$ffmpegChoice", "--mplayer=$mplayer2", "--mpv=$mpv", "--license=$license2", "", "--stripping=$strip", "--packing=$pack", "--rtmpdump=$rtmpdump", "--logging=$logging", "--bmx=$bmx", "--standalone=$standalone", "--aom=$aom", "--faac=$faac", "--ffmbc=$ffmbc", "--curl=$curl", "--cyanrip=$cyanrip2", "--redshift=$redshift", "--rav1e=$rav1e", "--ripgrep=$ripgrep", "--dav1d=$dav1d", "--vvc=$vvc", "2>&1"
 
-Start-Job -Name "Media-Autobuild_Suite Compile" -FilePath $bash -ArgumentList $compileArguments
+Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $bash, $compileArguments -ScriptBlock {
+    param(
+        $bash,
+        $compileArguments
+    )
+    & $bash $compileArguments
+} Receive-Job -Wait | Tee-Object $build\compile.log
 
 # from https://blogs.technet.microsoft.com/dsheehan/2018/10/27/powershell-taking-control-over-ctrl-c/
 [Console]::TreatControlCAsInput = $True
@@ -1381,11 +1461,9 @@ While (Get-Job -Name "Media-Autobuild_Suite Compile" 2>$null) {
             Write-Warning "`nCTRL-C was used - Shutting down any running jobs before exiting the script."
             Get-Job -Name "Media-Autobuild_Suite Compile" | Remove-Job -Force -Confirm:$False
             [Console]::TreatControlCAsInput = $False
-            _Exit-Script -HardExit $True
         }
         $Host.UI.RawUI.FlushInputBuffer()
     }
-    Receive-Job -job "Media-Autobuild_Suite Compile" -Wait | Tee-Object $build\compile.log
 }
 
 $env:Path = $tempPath
