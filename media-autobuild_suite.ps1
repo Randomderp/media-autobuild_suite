@@ -1011,7 +1011,7 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
         )
         Set-Location $msys2Path
         Write-Output "First msys2 update"
-        & $pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors
+        & $pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates
     } | Receive-Job -Wait | Tee-Object $build\firstUpdate.log
 
     Write-Host "-------------------------------------------------------------"
@@ -1113,7 +1113,7 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install msys2 base system"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\install_base_failed
+    Remove-Item -Force $build\install_base_failed 2>$null
     $(
         Write-Output "echo `"install base system`"`n"
         Write-Output "msysbasesystem=`"`$(cat /etc/pac-base.pk| tr '\n\r' '  ')`"`n"
@@ -1136,17 +1136,15 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     Remove-Item $build\pacman.sh
 }
 
-if ((Get-Item -Path $msys2Path\usr\ssl\cert.pem).Length -eq 0) {
-    Remove-Item -Force $build\cert.log 2>&1 | Out-Null
-    Start-Job -Name "cert" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        & $bash --login -c `"update-ca-trust; exit`"
-    } | Receive-Job -Wait | Tee-Object $build\cert.log
-}
+Remove-Item -Force $build\cert.log 2>&1 | Out-Null
+Start-Job -Name "cert" -ArgumentList $bash, $msys2Path -ScriptBlock {
+    param(
+        $bash,
+        $msys2Path
+    )
+    Set-Location $msys2Path
+    & $bash "--login -c `"update-ca-trust; exit`""
+} | Receive-Job -Wait | Tee-Object $build\cert.log
 
 if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
     $(
