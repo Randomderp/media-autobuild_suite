@@ -1356,7 +1356,10 @@ function Write-Profile {
         Write-Output "alias dir='ls -la --color=auto'`n"
         Write-Output "alias ls='ls --color=auto'`n"
         Write-Output "export CC=gcc`n`n"
-        Write-Output "CARCH=`"`$`{MINGW_CHOST%%%%-*`}`"`n"
+        switch ($bit) {
+            64 {"CARCH=`"x86_64`"`n"}
+            Default {"CARCH=`"i686`"`n"}
+        }
         Write-Output "CPATH=`"``cygpath -m `$LOCALDESTDIR/include``;``cygpath -m `$MINGW_PREFIX/include```"`n"
         Write-Output "LIBRARY_PATH=`"``cygpath -m `$LOCALDESTDIR/lib``;``cygpath -m `$MINGW_PREFIX/lib```"`n"
         Write-Output "export CPATH LIBRARY_PATH`n`n"
