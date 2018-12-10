@@ -85,7 +85,7 @@ New-Item -ItemType Directory -Force -Path $build | Out-Null
 $json = "$build\media-autobuild_suite.json"
 
 # Set package variables
-$msyspackages = "asciidoc", "autoconf", "autoconf-archive", "autogen", "automake-wrapper", "bison", "bzip2", "diffstat", "dos2unix", "doxygen", "git", "gperf", "gyp-git", "help2man", "intltool", "itstool", "libtool", "make", "man-db", "mercurial", "mintty", "p7zip", "patch", "python", "ruby", "subversion", "texinfo", "unzip", "wget", "winpty", "xmlto", "zip", "zipfindutils", "flex", "getent", "gzip", "inetutils", "lndir", "msys2-keyring", "msys2-launcher-git", "pactoys-git", "pax-git", "tftp-hpa", "tzcode", "which"
+$msyspackages = "asciidoc", "autoconf", "autoconf-archive", "autogen", "automake-wrapper", "bison", "diffstat", "dos2unix", "doxygen", "git", "gperf", "gyp-git", "help2man", "intltool", "itstool", "libtool", "make", "man-db", "mercurial", "mintty", "p7zip", "patch", "python", "ruby", "subversion", "texinfo", "unzip", "wget", "winpty", "xmlto", "zip"
 $mingwpackages = "cmake", "dlfcn", "libpng", "gcc", "nasm", "pcre", "tools-git", "yasm", "ninja", "pkg-config", "meson"
 $ffmpeg_options_builtin = "--disable-autodetect", "amf", "bzlib", "cuda", "cuvid", "d3d11va", "dxva2", "iconv", "lzma", "nvenc", "schannel", "zlib", "sdl2", "--disable-debug", "ffnvcodec", "nvdec"
 $ffmpeg_options_basic = "gmp", "libmp3lame", "libopus", "libvorbis", "libvpx", "libx264", "libx265", "libdav1d"
@@ -1138,7 +1138,7 @@ if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.gitconfig" 2>$null).hash
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
-    Write-Output "$i`n`r" | Out-File -NoNewline -Append $msys2Path\etc\pac-base.pk
+    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
 }
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
