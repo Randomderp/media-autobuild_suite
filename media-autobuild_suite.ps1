@@ -1131,7 +1131,7 @@ if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.gitconfig" 2>$null).hash
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
-    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
+    Write-Output "$i`n`r" | Out-File -NoNewline -Append $msys2Path\etc\pac-base.pk
 }
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
@@ -1140,7 +1140,6 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\install_base_failed 2>$null
     $(
-        Write-Output "echo `"install base system`"`n"
         Write-Output "msysbasesystem=`"`$(cat /etc/pac-base.pk| tr '\n\r' '  ')`"`n"
         Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`"`n"
         Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed`n"
@@ -1156,6 +1155,7 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
             $msys2Path
         )
         Set-Location $msys2Path
+        Write-Output "install base system"
         Invoke-Expression "$bash --login -c /build/pacman.sh"
     } | Receive-Job -Wait | Tee-Object $build\pacman.log
     Remove-Item $build\pacman.sh
