@@ -813,7 +813,6 @@ foreach ($b in ($order.psobject.Properties).Name) {
 
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
-$pacman = "$msys2Path\usr\bin\pacman.exe"
 
 # msys2 system
 if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
@@ -995,7 +994,7 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
             $msys2Path
         )
         Set-Location $msys2Path
-        & $bash --login -c exit
+        Invoke-Expression "$bash --login -c exit"
     } | Receive-Job -Wait | Tee-Object $build\firstrun.log
 
     Write-Fstab
@@ -1004,41 +1003,41 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
     Write-Host "First update"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "firstUpdate" -ArgumentList $pacman, $msys2Path -ScriptBlock {
+    Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
         param(
-            $pacman,
+            $bash,
             $msys2Path
         )
         Set-Location $msys2Path
         Write-Output "First msys2 update"
-        & $pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates
+        Invoke-Expression "$bash --login -c 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"
     } | Receive-Job -Wait | Tee-Object $build\firstUpdate.log
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "criticalUpdates" -ArgumentList $pacman, $msys2Path -ScriptBlock {
+    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $msys2Path -ScriptBlock {
         param(
-            $pacman,
+            $bash,
             $msys2Path
         )
         Set-Location $msys2Path
-        & $pacman -Syyu --needed --ask=20 --noconfirm --asdeps
+        Invoke-Expression "$bash --login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
     } | Receive-Job -Wait | Tee-Object $build\criticalUpdate.log
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "second update"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "secondUpdate" -ArgumentList $pacman, $msys2Path -ScriptBlock {
+    Start-Job -Name "secondUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
         param(
-            $pacman,
+            $bash,
             $msys2Path
         )
         Set-Location $msys2Path
         Write-Output "second msys2 update"
-        & $pacman -Syyu --needed --ask=20 --noconfirm --asdeps
+        Invoke-Expression "$bash --login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
     } | Receive-Job -Wait | Tee-Object $build\secondUpdate.log
 
     # equivalent to setlink.vbs
@@ -1131,7 +1130,7 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
             $msys2Path
         )
         Set-Location $msys2Path
-        & $bash --login -c /build/pacman.sh
+        Invoke-Expression "$bash --login -c /build/pacman.sh"
     } | Receive-Job -Wait | Tee-Object $build\pacman.log
     Remove-Item $build\pacman.sh
 }
@@ -1143,7 +1142,7 @@ Start-Job -Name "cert" -ArgumentList $bash, $msys2Path -ScriptBlock {
         $msys2Path
     )
     Set-Location $msys2Path
-    & $bash "--login -c `"update-ca-trust; exit`""
+    Invoke-Expression "$bash --login -c update-ca-trust"
 } | Receive-Job -Wait | Tee-Object $build\cert.log
 
 if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
@@ -1189,7 +1188,7 @@ function Get-Compiler {
                     $msys2Path
                 )
                 Set-Location $msys2Path
-                & $bash --login -c /build/mingw32.sh
+                Invoke-Expression "$bash --login -c /build/mingw32.sh"
             } | Receive-Job -Wait | Tee-Object $build\mingw32.log
             Remove-Item $build\mingw32.sh
         }
@@ -1213,7 +1212,7 @@ function Get-Compiler {
                     $msys2Path
                 )
                 Set-Location $msys2Path
-                & $bash --login -c /build/mingw64.sh
+                Invoke-Expression "$bash --login -c /build/mingw64.sh"
             } | Receive-Job -Wait | Tee-Object $build\mingw64.log
             Remove-Item $build\mingw64.sh
         }
@@ -1256,11 +1255,11 @@ if ($build64 -eq "yes") {
     }
 }
 
-Start-Job -Name "ExplicitMintty" -ArgumentList $pacman -ScriptBlock {
+Start-Job -Name "ExplicitMintty" -ArgumentList $bash -ScriptBlock {
     param(
-        $pacman
+        $bash
     )
-    & $pacman -D --asexplicit --noconfirm --ask=20 mintty
+    Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty'"
 } | Receive-Job -Wait
 # updatebase
 Write-Host "-------------------------------------------------------------"
@@ -1295,11 +1294,11 @@ if ($jsonObjects.updateSuite -eq 1) {
 
 Remove-Item -Force $build\update.log 2>&1 | Out-Null
 
-Start-Job -Name "ExplicitMintty" -ArgumentList $pacman -ScriptBlock {
+Start-Job -Name "ExplicitMintty" -ArgumentList $bash -ScriptBlock {
     param(
-        $pacman
+        $bash
     )
-    & $pacman -D --asexplicit --noconfirm --ask=20 mintty
+    Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty'"
 } | Receive-Job -Wait
 Start-Job -Name "update" -ArgumentList $bash, $msys2Path, $build32, $build64 -ScriptBlock {
     param(
@@ -1310,9 +1309,9 @@ Start-Job -Name "update" -ArgumentList $bash, $msys2Path, $build32, $build64 -Sc
     )
     Set-Location $msys2Path
     Set-Content -Path tempAnswers.txt -Value "yes`nyes`nyes`n" -NoNewline -Force
-    Start-Process -NoNewWindow -Wait -FilePath $bash -ArgumentList "--login -c `"/build/media-suite_update.sh --build32=$build32 --build64=$build64`"" -WorkingDirectory $msys2Path -RedirectStandardInput tempAnswers.txt
+    Start-Process -NoNewWindow -Wait -FilePath $bash -ArgumentList "--login -c /build/media-suite_update.sh --build32=$build32 --build64=$build64" -WorkingDirectory $msys2Path -RedirectStandardInput tempAnswers.txt
     Remove-Item -Force tempAnswers.txt
-    #& $bash --login -c `"/build/media-suite_update.sh --build32=$build32 --build64=$build64`"
+    #Invoke-Expression $bash --login -c `"/build/media-suite_update.sh --build32=$build32 --build64=$build64`"
 } | Receive-Job -Wait | Tee-Object $build\update.log
 
 if (Test-Path $build\update_core) {
@@ -1320,13 +1319,13 @@ if (Test-Path $build\update_core) {
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
-    Start-Job -Name "criticalUpdates" -ArgumentList $pacman, $msys2Path -ScriptBlock {
+    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $msys2Path -ScriptBlock {
         param(
-            $pacman,
+            $bash,
             $msys2Path
         )
         Set-Location $msys2Path
-        & $pacman -Syyu --needed --noconfirm --ask=20 --asdeps
+        Invoke-Expression  "$bash --login -c 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
     } | Receive-Job -Wait | Tee-Object $build\update_core.log
     Remove-Item $build\update_core
 }
@@ -1432,7 +1431,7 @@ Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\mintty.exe -Argume
 #    param(
 #        $bash
 #    )
-#    & $bash "--login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
+#    Invoke-Expression  "$bash --login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
 #} | Receive-Job -Wait | Tee-Object $build\compile.log
 
 $env:Path = $Global:TempPath
