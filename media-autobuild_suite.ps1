@@ -976,7 +976,7 @@ else {
     Write-Fstab
 }
 
-if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
+if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
     if ($msys2 -eq "msys32") {
         Write-Host "-------------------------------------------------------------`n"
@@ -1055,6 +1055,18 @@ if (-Not (Test-Path $PSScriptRoot\mintty.link)) {
 
 New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
 
+Write-Host "-------------------------------------------------------------"
+Write-Host "forcefully signing key"
+Write-Host "-------------------------------------------------------------"
+Start-Job -Name "forceSign" -ArgumentList $bash, $msys2Path -ScriptBlock {
+    param(
+        $bash,
+        $msys2Path
+    )
+    Set-Location $msys2Path
+    Write-Output "forceSign"
+    Invoke-Expression "$bash --login -c 'gpg --recv-keys EFD16019AE4FF531; pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531; exit'"
+} | Receive-Job -Wait
 
 if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.minttyrc" 2>$null).hash -ne "82000DF19CD678EAC0B5F763FBA59A603FBC8BF2626D2A4B6F13966237BA24B6") {
     $(
@@ -1255,12 +1267,6 @@ if ($build64 -eq "yes") {
     }
 }
 
-Start-Job -Name "ExplicitMintty" -ArgumentList $bash -ScriptBlock {
-    param(
-        $bash
-    )
-    Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty'"
-} | Receive-Job -Wait
 # updatebase
 Write-Host "-------------------------------------------------------------"
 Write-Host "update autobuild suite"
@@ -1291,28 +1297,17 @@ if ($jsonObjects.updateSuite -eq 1) {
 }
 
 # update
-
 Remove-Item -Force $build\update.log 2>&1 | Out-Null
-
 Start-Job -Name "ExplicitMintty" -ArgumentList $bash -ScriptBlock {
     param(
         $bash
     )
     Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty'"
 } | Receive-Job -Wait
-Start-Job -Name "update" -ArgumentList $bash, $msys2Path, $build32, $build64 -ScriptBlock {
-    param(
-        $bash,
-        $msys2Path,
-        $build32,
-        $build64
-    )
-    Set-Location $msys2Path
-    Set-Content -Path tempAnswers.txt -Value "yes`nyes`nyes`n" -NoNewline -Force
-    Start-Process -NoNewWindow -Wait -FilePath $bash -ArgumentList "--login -c /build/media-suite_update.sh --build32=$build32 --build64=$build64" -WorkingDirectory $msys2Path -RedirectStandardInput tempAnswers.txt
-    Remove-Item -Force tempAnswers.txt
-    #Invoke-Expression $bash --login -c `"/build/media-suite_update.sh --build32=$build32 --build64=$build64`"
-} | Receive-Job -Wait | Tee-Object $build\update.log
+
+Set-Content -Path tempAnswers.txt -Value "yes`nyes`nyes`n" -NoNewline -Force
+Start-Process -NoNewWindow -Wait -FilePath $bash -ArgumentList "--login -c /build/media-suite_update.sh --build32=$build32 --build64=$build64" -WorkingDirectory $msys2Path -RedirectStandardInput tempAnswers.txt -RedirectStandardOutput $build\update.log
+Remove-Item tempAnswers.txt
 
 if (Test-Path $build\update_core) {
     Write-Host "-------------------------------------------------------------"
@@ -1354,8 +1349,8 @@ function Write-Profile {
         Write-Output "alias ls='ls --color=auto'`n"
         Write-Output "export CC=gcc`n`n"
         switch ($bit) {
-            64 {"CARCH=`"x86_64`"`n"}
-            Default {"CARCH=`"i686`"`n"}
+            64 {Write-Output "CARCH=`"x86_64`"`n"}
+            32 {Write-Output "CARCH=`"i686`"`n"}
         }
         Write-Output "CPATH=`"``cygpath -m `$LOCALDESTDIR/include``;``cygpath -m `$MINGW_PREFIX/include```"`n"
         Write-Output "LIBRARY_PATH=`"``cygpath -m `$LOCALDESTDIR/lib``;``cygpath -m `$MINGW_PREFIX/lib```"`n"
@@ -1422,7 +1417,7 @@ Remove-Item -Force $build\compile.log 2>&1 | Out-Null
 $env:MSYSTEM = $MSYSTEM
 $env:MSYS2_PATH_TYPE = "inherit"
 
-Write-Host "--login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
+#Write-Host "--login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
 
 Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\mintty.exe -ArgumentList $("-i /msys2.ico -t `"media-autobuild_suite`" --log $build\compile.log /bin/env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc")
 
