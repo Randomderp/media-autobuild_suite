@@ -1,5 +1,27 @@
 #!/usr/bin/env powershell
 
+#-----------------------------------------------------------------------------
+# LICENSE --------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+#  This Windows Batchscript is for setup a compiler environment for building
+#  ffmpeg and other media tools under Windows.
+#
+#    Copyright (C) 2013  jb_alvarado
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#-----------------------------------------------------------------------------
+
 $PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 
 # Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008. Windows XP doesn't even have pause... This section will fail with an error... :crying:
@@ -56,12 +78,6 @@ Write-Host "else you won't have your original path in this console until you clo
 Write-Host "-------------------------------------------------------------"
 Start-Sleep -Seconds 5
 $env:Path = "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
-
-# Set bitness, not build bit. Eq to _bitness, may be useless as it seemed to only be used to decide the msys2Arch
-#$bitness = switch ([System.IntPtr]::Size) {
-#    4 {32}
-#    Default {64}
-#}
 
 # Set Build path
 $build = "$PSScriptRoot\build"
@@ -179,12 +195,10 @@ if (Test-Path -Path $json) {
     }
 }
 else {
-    #initialize json file
     $jsonObjects | ConvertTo-Json | Out-File $json
     $writeProperties = $true
 }
 
-#($jsonObjects.psobject.Properties).Item("rav1e").Value
 # sytemVars
 foreach ($b in ($order.psobject.Properties).Name) {
     $a = $order.$b
