@@ -22,8 +22,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 
-$PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
-
 # Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008. Windows XP doesn't even have pause... This section will fail with an error... :crying:
 if ($PSVersionTable.PSVersion.Major -lt 3) {
     Write-Host "Your Powershell version is too low!"
@@ -36,6 +34,7 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
 #requires -Version 3.0.0
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
+$PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 
 if ($PSScriptRoot -match " ") {
     Write-Host "----------------------------------------------------------------------"
@@ -361,7 +360,6 @@ foreach ($b in ($order.psobject.Properties).Name) {
                     Write-Host "Build ripgrep [faster grep in Rust]?`n"
                 }
                 cores {
-                    # Still don't understand why the for /l loop on 1,1,%cpuCores%
                     Write-Host "Number of CPU Cores/Threads for compiling:"
                     Write-Host "[it is non-recommended to use all cores/threads!]`n"
                 }
@@ -826,117 +824,72 @@ foreach ($b in ($order.psobject.Properties).Name) {
         }
     }
 }
-
 # EOQuestions
 
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
-if (-not (Get-Command Expand-7Zip -ErrorAction Ignore)) {
-    Import-Module $PSScriptRoot\7Zip4Powershell\1.9.0\7Zip4PowerShell.psd1
+$msysprefix = switch ($msys2) {
+    msys32 {"i686"}
+    Default {"x86_64"}
 }
 
 # msys2 system
-if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
-    Write-Host "-------------------------------------------------------------`n"
-    Write-Host "- Downloading Wget`n"
-    Write-Host "-------------------------------------------------------------"
-    Set-Location $build
-    if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
-        while (-Not (Test-Path $build\wget.exe)) {
-            $progressPreference = 'silentlyContinue'
-            if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 6>$null)) {
-                Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-            }
-            elseif ($(Test-Connection -Quiet -ComputerName randomderp.com -Count 1 6>$null)) {
-                Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
-            }
-            else {
-                Write-Host "-------------------------------------------------------------`n"
-                Write-Host "Script to download necessary components failed.`n"
-                Write-Host "Download and extract this manually to inside $($build):"
-                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
-                Write-Host "-------------------------------------------------------------"
-                Pause
-                exit
-            }
-            $progressPreference = 'Continue'
-            if ((Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-            }
-            else {
-                Remove-Item $build\wget-pack.exe
-                Write-Host "-------------------------------------------------------------`n"
-                Write-Host "Script to download necessary components failed.`n"
-                Write-Host "Download and extract this manually to inside $($build):"
-                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
-                Write-Host "-------------------------------------------------------------"
-                Pause
-                exit
-            }
-        }
-        Remove-Item $build\wget-pack.exe
-    }
-}
-
+# Uses 7Zip4Powershell provided by Thomas Freudenberg from https://github.com/thoemmi/7Zip4Powershell. 7Zip4Powershell is licened under LGPL 2.1.
 if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
+    if (-not (Get-Command Expand-7Zip -ErrorAction Ignore)) {
+        Save-Module -Name 7Zip4Powershell -Path $PSScriptRoot
+        Import-Module -Name $PSScriptRoot\7Zip4Powershell
+    }
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
-    $msysprefix = switch ($msys2) {
-        msys32 {"i686"}
-        Default {"x86_64"}
-    }
     Invoke-WebRequest -Resume -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
-
-}
-if (Test-Path $build\msys2-base.tar.xz) {
-    # I hate how I can't use pipes similar to *nix
-    #    Expand-7Zip $tarFile $dest
-    #Expand-7Zip msys2-base.tar.xz $build
-    #Expand-7Zip msys2-base.tar $PSScriptRoot
-
-    Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
-    Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
-    Remove-Item $build\msys2-base.tar
-    Remove-Item $build\msys2-base.tar.xz
-}
-if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
-    Write-Host "-------------------------------------------------------------`n"
-    Write-Host "- Download msys2 basic system failed,"
-    Write-Host "- please download it manually from:"
-    Write-Host "- http://repo.msys2.org/distrib/"
-    Write-Host "- and copy the uncompressed folder to:"
-    Write-Host "- $build"
-    Write-Host "- and start the batch script again!`n"
-    Write-Host "-------------------------------------------------------------"
-    pause
-    exit
+    if (Test-Path $build\msys2-base.tar.xz) {
+        Expand-7Zip msys2-base.tar.xz $build
+        Expand-7Zip msys2-base.tar $PSScriptRoot
+        Remove-Item $build\msys2-base.tar
+        Remove-Item $build\msys2-base.tar.xz
+    }
+    if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
+        Write-Host "-------------------------------------------------------------`n"
+        Write-Host "- Download msys2 basic system failed,"
+        Write-Host "- please download it manually from:"
+        Write-Host "- http://repo.msys2.org/distrib/"
+        Write-Host "- and copy the uncompressed folder to:"
+        Write-Host "- $build"
+        Write-Host "- and start the batch script again!`n"
+        Write-Host "-------------------------------------------------------------"
+        pause
+        exit
+    }
+    Remove-Module -Name 7Zip4Powershell
+    Remove-Item -Recurse -Force .\7Zip4Powershell
 }
 
 # createFolders
 function Write-BaseFolders {
     param (
-        [string]$baseFolder
+        [string]$bit
     )
-    if (-Not (Test-Path $PSScriptRoot\$baseFolder\share -PathType Container)) {
+    if (-Not (Test-Path $PSScriptRoot\local$bit\share -PathType Container)) {
         Write-Host "-------------------------------------------------------------"
-        Write-Host "creating $baseFolder-bit install folders"
+        Write-Host "creating $bit-bit install folders"
         Write-Host "-------------------------------------------------------------"
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\bin | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\bin-audio | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\bin-global | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\bin-video | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\etc | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\include | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\lib\pkgconfig | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\$baseFolder\share | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\etc | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\include | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\share | Out-Null
     }
 }
 if ($build64 -eq "yes") {
-    Write-BaseFolders -baseFolder "local64"
+    Write-BaseFolders -bit 64
 }
 if ($build32 -eq "yes") {
-    Write-BaseFolders -baseFolder "local32"
+    Write-BaseFolders -bit 32
 }
 $fstab = "$msys2Path\etc\fstab"
 # checkFstab
@@ -959,48 +912,6 @@ function Write-Fstab {
     }
 }
 
-if (Test-Path $msys2Path\etc\fstab) {
-    $removefstab = "no"
-    $removefstab = if ($build32 -eq "yes") {
-        if (-Not (Select-String -Pattern "local32" -Path $fstab)) {
-            "yes"
-        }
-    }
-    elseif ($build32 -eq "no") {
-        if (Select-String -Pattern "local32" -Path $fstab) {
-            "yes"
-        }
-    }
-    elseif ($build64 -eq "yes") {
-        if (-Not (Select-String -Pattern "local64" -Path $fstab)) {
-            "yes"
-        }
-    }
-    elseif ($build64 -eq "no") {
-        if (Select-String -Pattern "local64" -Path $fstab) {
-            "yes"
-        }
-    }
-    elseif (-Not (Select-String -Path $fstab -Pattern "trunk")) {
-        "yes"
-    }
-    elseif (((Select-String -Path $fstab -Pattern "trunk")[0].Line -split ' ')[0] -ne $PSScriptRoot) {
-        "yes"
-    }
-    elseif (Select-String -Path $fstab -Pattern "build32") {
-        "yes"
-    }
-    else {
-        "no"
-    }
-    if ($removefstab -eq "yes") {
-        Write-Fstab
-    }
-}
-else {
-    Write-Fstab
-}
-
 if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
     if ($msys2 -eq "msys32") {
@@ -1021,7 +932,6 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
         Set-Location $msys2Path
         Invoke-Expression "$bash --login -c exit"
     } | Receive-Job -Wait | Tee-Object $build\firstrun.log
-
     Write-Fstab
 
     Write-Host "-------------------------------------------------------------"
@@ -1076,6 +986,47 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
     Set-Location $build
+}
+if (Test-Path $msys2Path\etc\fstab) {
+    $removefstab = "no"
+    $removefstab = if ($build32 -eq "yes") {
+        if (-Not (Select-String -Pattern "local32" -Path $fstab)) {
+            "yes"
+        }
+    }
+    elseif ($build32 -eq "no") {
+        if (Select-String -Pattern "local32" -Path $fstab) {
+            "yes"
+        }
+    }
+    elseif ($build64 -eq "yes") {
+        if (-Not (Select-String -Pattern "local64" -Path $fstab)) {
+            "yes"
+        }
+    }
+    elseif ($build64 -eq "no") {
+        if (Select-String -Pattern "local64" -Path $fstab) {
+            "yes"
+        }
+    }
+    elseif (-Not (Select-String -Path $fstab -Pattern "trunk")) {
+        "yes"
+    }
+    elseif (((Select-String -Path $fstab -Pattern "trunk")[0].Line -split ' ')[0] -ne $PSScriptRoot) {
+        "yes"
+    }
+    elseif (Select-String -Path $fstab -Pattern "build32") {
+        "yes"
+    }
+    else {
+        "no"
+    }
+    if ($removefstab -eq "yes") {
+        Write-Fstab
+    }
+}
+else {
+    Write-Fstab
 }
 
 New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
@@ -1373,10 +1324,7 @@ function Write-Profile {
         Write-Output "alias dir='ls -la --color=auto'`n"
         Write-Output "alias ls='ls --color=auto'`n"
         Write-Output "export CC=gcc`n`n"
-        switch ($bit) {
-            64 {Write-Output "CARCH=`"x86_64`"`n"}
-            32 {Write-Output "CARCH=`"i686`"`n"}
-        }
+        Write-Output "CARCH=`"$msysprefix`"`n"
         Write-Output "CPATH=`"``cygpath -m `$LOCALDESTDIR/include``;``cygpath -m `$MINGW_PREFIX/include```"`n"
         Write-Output "LIBRARY_PATH=`"``cygpath -m `$LOCALDESTDIR/lib``;``cygpath -m `$MINGW_PREFIX/lib```"`n"
         Write-Output "export CPATH LIBRARY_PATH`n`n"
