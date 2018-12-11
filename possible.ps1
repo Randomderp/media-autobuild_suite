@@ -34,6 +34,5 @@ param(
     [switch]$strip,
     [switch]$pack,
     [switch]$log,
-    [switch]$updatescript,
-    [switch]$forcequite
+    [switch]$updatescript
 )

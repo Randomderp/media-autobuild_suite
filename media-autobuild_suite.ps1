@@ -37,7 +37,6 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
 # Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 
-# Check if directory has spaces, may be unecessary depending on what requires no space paths
 if ($PSScriptRoot -match " ") {
     Write-Host "----------------------------------------------------------------------"
     Write-Host "You have probably run the script in a path with spaces.`n"
@@ -49,7 +48,6 @@ if ($PSScriptRoot -match " ") {
     exit
 }
 elseif ($PSScriptRoot.Length -gt 60) {
-    # Check if directory path is longer than 60 characters, may be unecessary depending on what requires paths shorter than 60
     Write-Host "----------------------------------------------------------------------"
     Write-Host "The total filepath to the suite seems too large (larger than 60 characters):`n"
     Write-Host "$PSScriptRoot`n"
@@ -76,8 +74,14 @@ Write-Host "If you want to reuse this console (ran powershell then ran this scri
 Write-Host "`$env:Path = `$Global:TempPath"
 Write-Host "else you won't have your original path in this console until you close and reopen."
 Write-Host "-------------------------------------------------------------"
-Start-Sleep -Seconds 5
-$env:Path = "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+Start-Sleep -Seconds 2
+
+$env:Path = if (Get-Command nvcc) {
+    "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;" + $(($env:Path.Split(';') -match "NVIDIA") -join ';')
+}
+else {
+    "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+}
 
 # Set Build path
 $build = "$PSScriptRoot\build"
