@@ -845,8 +845,8 @@ if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------"
     Invoke-WebRequest -Resume -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
-        Expand-7Zip msys2-base.tar.xz $build
-        Expand-7Zip msys2-base.tar $PSScriptRoot
+        Expand-7Zip $build\msys2-base.tar.xz $build
+        Expand-7Zip $build\msys2-base.tar $PSScriptRoot
         Remove-Item $build\msys2-base.tar
         Remove-Item $build\msys2-base.tar.xz
     }
