@@ -100,8 +100,12 @@ $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "ht
 
 $jsonObjects = [PSCustomObject]@{
     msys2Arch    = switch ([System.IntPtr]::Size) {
-        4 {1}
-        default {2}
+        4 {
+            1
+        }
+        default {
+            2
+        }
     }
     arch         = 0
     license2     = 0
@@ -180,7 +184,9 @@ $order = [PSCustomObject]@{
 $writeProperties = $false
 
 $coresrecommend = switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors) {
-    1 {1}
+    1 {
+        1
+    }
     Default {
         (Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
     }
@@ -207,24 +213,50 @@ foreach ($b in ($order.psobject.Properties).Name) {
     $a = $order.$b
     if ($a -eq "msys2Arch") {
         $msys2 = switch ($jsonObjects.msys2Arch) {
-            1 {"msys32"}
-            2 {"msys64"}
+            1 {
+                "msys32"
+            }
+            2 {
+                "msys64"
+            }
         }
     }
     elseif ($jsonObjects.$a -eq 0) {
         while (1..$(
                 switch ($a) {
-                    arch {3}
-                    license2 {5}
-                    x2643 {7}
-                    x2652 {7}
-                    ffmpegB2 {5}
-                    ffmpegUpdate {3}
-                    ffmpegChoice {4}
-                    mpv {3}
-                    curl {7}
-                    cores {99}
-                    Default {2}
+                    arch {
+                        3
+                    }
+                    license2 {
+                        5
+                    }
+                    x2643 {
+                        7
+                    }
+                    x2652 {
+                        7
+                    }
+                    ffmpegB2 {
+                        5
+                    }
+                    ffmpegUpdate {
+                        3
+                    }
+                    ffmpegChoice {
+                        4
+                    }
+                    mpv {
+                        3
+                    }
+                    curl {
+                        7
+                    }
+                    cores {
+                        99
+                    }
+                    Default {
+                        2
+                    }
                 }
             ) -notcontains $jsonObjects.$a) {
             Write-host "-------------------------------------------------------------------------------"
@@ -388,7 +420,8 @@ foreach ($b in ($order.psobject.Properties).Name) {
                     Write-Host "If you have made changes to the scripts, they will be reset but saved to"
                     Write-Host "a .diff text file inside $build`n"
                 }
-                Default {}
+                Default {
+                }
             }
             switch ($a) {
                 arch {
@@ -483,26 +516,66 @@ foreach ($b in ($order.psobject.Properties).Name) {
             $jsonObjects.$a = [int](
                 Read-Host -Prompt $(
                     switch ($a) {
-                        arch {"Build System: "}
-                        license2 {"FFmpeg license: "}
-                        standalone {"Build standalone binaries: "}
-                        vpx2 {"Build vpx: "}
-                        x2643 {"Build x264: "}
-                        x2652 {"Build x265: "}
-                        other265 {"Build kvazaar: "}
-                        soxB {"Build sox: "}
-                        ffmpegB2 {"Build FFmpeg: "}
-                        ffmpegUpdate {"Build ffmpeg if lib is new: "}
-                        ffmpegChoice {"Choose ffmpeg and mpv optional libs: "}
-                        mplayer2 {"Build mplayer: "}
-                        cyanrip2 {"Build cyanrip: "}
-                        cores {"Core/Thread Count: "}
-                        deleteSource {"Delete source: "}
-                        strip {"Strip files: "}
-                        pack {"Pack files: "}
-                        logging {"Write logs: "}
-                        updateSuite {"Create update script: "}
-                        Default {"Build $($a): "}
+                        arch {
+                            "Build System: "
+                        }
+                        license2 {
+                            "FFmpeg license: "
+                        }
+                        standalone {
+                            "Build standalone binaries: "
+                        }
+                        vpx2 {
+                            "Build vpx: "
+                        }
+                        x2643 {
+                            "Build x264: "
+                        }
+                        x2652 {
+                            "Build x265: "
+                        }
+                        other265 {
+                            "Build kvazaar: "
+                        }
+                        soxB {
+                            "Build sox: "
+                        }
+                        ffmpegB2 {
+                            "Build FFmpeg: "
+                        }
+                        ffmpegUpdate {
+                            "Build ffmpeg if lib is new: "
+                        }
+                        ffmpegChoice {
+                            "Choose ffmpeg and mpv optional libs: "
+                        }
+                        mplayer2 {
+                            "Build mplayer: "
+                        }
+                        cyanrip2 {
+                            "Build cyanrip: "
+                        }
+                        cores {
+                            "Core/Thread Count: "
+                        }
+                        deleteSource {
+                            "Delete source: "
+                        }
+                        strip {
+                            "Strip files: "
+                        }
+                        pack {
+                            "Pack files: "
+                        }
+                        logging {
+                            "Write logs: "
+                        }
+                        updateSuite {
+                            "Create update script: "
+                        }
+                        Default {
+                            "Build $($a): "
+                        }
                     }
                 )
             )
@@ -515,61 +588,127 @@ foreach ($b in ($order.psobject.Properties).Name) {
         switch ($a) {
             arch {
                 $build32 = switch ($jsonObjects.arch) {
-                    1 {"yes"}
-                    2 {"yes"}
-                    Default {"no"}
+                    1 {
+                        "yes"
+                    }
+                    2 {
+                        "yes"
+                    }
+                    Default {
+                        "no"
+                    }
                 }
                 $build64 = switch ($jsonObjects.arch) {
-                    1 {"yes"}
-                    3 {"yes"}
-                    Default {"no"}
+                    1 {
+                        "yes"
+                    }
+                    3 {
+                        "yes"
+                    }
+                    Default {
+                        "no"
+                    }
                 }
             }
             license2 {
                 $license2 = switch ($jsonObjects.license2) {
-                    1 {"nonfree"}
-                    2 {"gplv3"}
-                    3 {"gpl"}
-                    4 {"lgplv3"}
-                    5 {"lgpl"}
+                    1 {
+                        "nonfree"
+                    }
+                    2 {
+                        "gplv3"
+                    }
+                    3 {
+                        "gpl"
+                    }
+                    4 {
+                        "lgplv3"
+                    }
+                    5 {
+                        "lgpl"
+                    }
                 }
             }
             x2643 {
                 $x2643 = switch ($jsonObjects.x2643) {
-                    1 {"yes"}
-                    2 {"no"}
-                    3 {"high"}
-                    4 {"full"}
-                    5 {"shared"}
-                    6 {"fullv"}
-                    7 {"o8"}
+                    1 {
+                        "yes"
+                    }
+                    2 {
+                        "no"
+                    }
+                    3 {
+                        "high"
+                    }
+                    4 {
+                        "full"
+                    }
+                    5 {
+                        "shared"
+                    }
+                    6 {
+                        "fullv"
+                    }
+                    7 {
+                        "o8"
+                    }
                 }
             }
             x2652 {
                 $x2652 = switch ($jsonObjects.x2652) {
-                    1 {"y"}
-                    2 {"n"}
-                    3 {"o10"}
-                    4 {"o8"}
-                    5 {"s"}
-                    6 {"d"}
-                    7 {"o12"}
+                    1 {
+                        "y"
+                    }
+                    2 {
+                        "n"
+                    }
+                    3 {
+                        "o10"
+                    }
+                    4 {
+                        "o8"
+                    }
+                    5 {
+                        "s"
+                    }
+                    6 {
+                        "d"
+                    }
+                    7 {
+                        "o12"
+                    }
                 }
             }
             ffmpegB2 {
                 $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                    1 {"static"}
-                    2 {"no"}
-                    3 {"shared"}
-                    4 {"both"}
-                    5 {"sharedlibs"}
+                    1 {
+                        "static"
+                    }
+                    2 {
+                        "no"
+                    }
+                    3 {
+                        "shared"
+                    }
+                    4 {
+                        "both"
+                    }
+                    5 {
+                        "sharedlibs"
+                    }
                 }
             }
             ffmpegUpdate {
                 $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
-                    1 {"y"}
-                    2 {"n"}
-                    3 {"onlyFFmpeg"}
+                    1 {
+                        "y"
+                    }
+                    2 {
+                        "n"
+                    }
+                    3 {
+                        "onlyFFmpeg"
+                    }
                 }
             }
             ffmpegChoice {
@@ -629,40 +768,74 @@ foreach ($b in ($order.psobject.Properties).Name) {
                         }
 
                     }
-                    2 {$ffmpegChoice = "n"}
-                    3 {$ffmpegChoice = "z"}
-                    4 {$ffmpegChoice = "f"}
+                    2 {
+                        $ffmpegChoice = "n"
+                    }
+                    3 {
+                        $ffmpegChoice = "z"
+                    }
+                    4 {
+                        $ffmpegChoice = "f"
+                    }
                 }
             }
             mpv {
                 $mpv = switch ($jsonObjects.mpv) {
-                    1 {"y"}
-                    2 {"n"}
-                    3 {"z"}
+                    1 {
+                        "y"
+                    }
+                    2 {
+                        "n"
+                    }
+                    3 {
+                        "z"
+                    }
                 }
             }
             curl {
                 $curl = switch ($jsonObjects.curl) {
-                    1 {"y"}
-                    2 {"n"}
-                    3 {"schannel"}
-                    4 {"gnutls"}
-                    5 {"openssl"}
-                    6 {"libressl"}
-                    7 {"mbedtls"}
+                    1 {
+                        "y"
+                    }
+                    2 {
+                        "n"
+                    }
+                    3 {
+                        "schannel"
+                    }
+                    4 {
+                        "gnutls"
+                    }
+                    5 {
+                        "openssl"
+                    }
+                    6 {
+                        "libressl"
+                    }
+                    7 {
+                        "mbedtls"
+                    }
                 }
             }
             cyanrip2 {
                 $cyanrip2 = switch ($jsonObjects.cyanrip2) {
-                    1 {"yes"}
-                    2 {"no"}
+                    1 {
+                        "yes"
+                    }
+                    2 {
+                        "no"
+                    }
                 }
             }
             Default {
                 Set-Variable -Name $($a) -Value $(
                     switch ($jsonObjects.$a) {
-                        1 {"y"}
-                        2 {"n"}
+                        1 {
+                            "y"
+                        }
+                        2 {
+                            "n"
+                        }
                     }
                 )
             }
@@ -671,61 +844,127 @@ foreach ($b in ($order.psobject.Properties).Name) {
     switch ($a) {
         arch {
             $build32 = switch ($jsonObjects.arch) {
-                1 {"yes"}
-                2 {"yes"}
-                Default {"no"}
+                1 {
+                    "yes"
+                }
+                2 {
+                    "yes"
+                }
+                Default {
+                    "no"
+                }
             }
             $build64 = switch ($jsonObjects.arch) {
-                1 {"yes"}
-                3 {"yes"}
-                Default {"no"}
+                1 {
+                    "yes"
+                }
+                3 {
+                    "yes"
+                }
+                Default {
+                    "no"
+                }
             }
         }
         license2 {
             $license2 = switch ($jsonObjects.license2) {
-                1 {"nonfree"}
-                2 {"gplv3"}
-                3 {"gpl"}
-                4 {"lgplv3"}
-                5 {"lgpl"}
+                1 {
+                    "nonfree"
+                }
+                2 {
+                    "gplv3"
+                }
+                3 {
+                    "gpl"
+                }
+                4 {
+                    "lgplv3"
+                }
+                5 {
+                    "lgpl"
+                }
             }
         }
         x2643 {
             $x2643 = switch ($jsonObjects.x2643) {
-                1 {"yes"}
-                2 {"no"}
-                3 {"high"}
-                4 {"full"}
-                5 {"shared"}
-                6 {"fullv"}
-                7 {"o8"}
+                1 {
+                    "yes"
+                }
+                2 {
+                    "no"
+                }
+                3 {
+                    "high"
+                }
+                4 {
+                    "full"
+                }
+                5 {
+                    "shared"
+                }
+                6 {
+                    "fullv"
+                }
+                7 {
+                    "o8"
+                }
             }
         }
         x2652 {
             $x2652 = switch ($jsonObjects.x2652) {
-                1 {"y"}
-                2 {"n"}
-                3 {"o10"}
-                4 {"o8"}
-                5 {"s"}
-                6 {"d"}
-                7 {"o12"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "o10"
+                }
+                4 {
+                    "o8"
+                }
+                5 {
+                    "s"
+                }
+                6 {
+                    "d"
+                }
+                7 {
+                    "o12"
+                }
             }
         }
         ffmpegB2 {
             $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                1 {"static"}
-                2 {"no"}
-                3 {"shared"}
-                4 {"both"}
-                5 {"sharedlibs"}
+                1 {
+                    "static"
+                }
+                2 {
+                    "no"
+                }
+                3 {
+                    "shared"
+                }
+                4 {
+                    "both"
+                }
+                5 {
+                    "sharedlibs"
+                }
             }
         }
         ffmpegUpdate {
             $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
-                1 {"y"}
-                2 {"n"}
-                3 {"onlyFFmpeg"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "onlyFFmpeg"
+                }
             }
         }
         ffmpegChoice {
@@ -785,40 +1024,74 @@ foreach ($b in ($order.psobject.Properties).Name) {
                     }
 
                 }
-                2 {$ffmpegChoice = "n"}
-                3 {$ffmpegChoice = "z"}
-                4 {$ffmpegChoice = "f"}
+                2 {
+                    $ffmpegChoice = "n"
+                }
+                3 {
+                    $ffmpegChoice = "z"
+                }
+                4 {
+                    $ffmpegChoice = "f"
+                }
             }
         }
         mpv {
             $mpv = switch ($jsonObjects.mpv) {
-                1 {"y"}
-                2 {"n"}
-                3 {"z"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "z"
+                }
             }
         }
         curl {
             $curl = switch ($jsonObjects.curl) {
-                1 {"y"}
-                2 {"n"}
-                3 {"schannel"}
-                4 {"gnutls"}
-                5 {"openssl"}
-                6 {"libressl"}
-                7 {"mbedtls"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "schannel"
+                }
+                4 {
+                    "gnutls"
+                }
+                5 {
+                    "openssl"
+                }
+                6 {
+                    "libressl"
+                }
+                7 {
+                    "mbedtls"
+                }
             }
         }
         cyanrip2 {
             $cyanrip2 = switch ($jsonObjects.cyanrip2) {
-                1 {"yes"}
-                2 {"no"}
+                1 {
+                    "yes"
+                }
+                2 {
+                    "no"
+                }
             }
         }
         Default {
             Set-Variable -Name $($a) -Value $(
                 switch ($jsonObjects.$a) {
-                    1 {"y"}
-                    2 {"n"}
+                    1 {
+                        "y"
+                    }
+                    2 {
+                        "n"
+                    }
                 }
             )
         }
@@ -829,8 +1102,12 @@ foreach ($b in ($order.psobject.Properties).Name) {
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
 $msysprefix = switch ($msys2) {
-    msys32 {"i686"}
-    Default {"x86_64"}
+    msys32 {
+        "i686"
+    }
+    Default {
+        "x86_64"
+    }
 }
 
 # msys2 system
@@ -949,6 +1226,26 @@ function Write-Fstab {
     }
 }
 
+function Start-Bash {
+    param (
+        [string]$Title,
+        [string]$ArgumentList,
+        [string]$Log,
+        $Workingdir = $msyspath
+    )
+    if (-Not $log) {
+        $log = "$build\$($title).log"
+    }
+    Set-Location $workingdir
+    Start-Job -Name $title -ArgumentList $bash, $argument -ScriptBlock {
+        param(
+            $bash,
+            $argument
+        )
+        Invoke-Expression "$bash $argument"
+    } | Receive-Job -Wait | Tee-Object $log
+}
+
 if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
     if ($msys2 -eq "msys32") {
@@ -961,56 +1258,27 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     Write-Host "- make a first run"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\firstrun.log 2>&1 | Out-Null
-    Start-Job -Name "firstRun" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        Invoke-Expression "$bash --login -c exit"
-    } | Receive-Job -Wait | Tee-Object $build\firstrun.log
+    Start-Bash -Title "firstRun" -Log "$build\firstrun.log" -ArgumentList "--login -c exit"
+
     Write-Fstab
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "First update"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        Write-Output "First msys2 update"
-        Invoke-Expression "$bash --login -c 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"
-    } | Receive-Job -Wait | Tee-Object $build\firstUpdate.log
+    Start-Bash -Title "firstUpdate" -ArgumentList "--login -c 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        Invoke-Expression "$bash --login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
-    } | Receive-Job -Wait | Tee-Object $build\criticalUpdate.log
+    Start-Bash -Title "criticalUpdate" -ArgumentList "--login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
 
     Write-Host "-------------------------------------------------------------"
     Write-Host "second update"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "secondUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        Write-Output "second msys2 update"
-        Invoke-Expression "$bash --login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
-    } | Receive-Job -Wait | Tee-Object $build\secondUpdate.log
+    Start-Bash -Title "secondUpdate" -ArgumentList "--login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
 
     # equivalent to setlink.vbs
     $wshShell = New-Object -ComObject WScript.Shell
@@ -1078,7 +1346,7 @@ Start-Job -Name "forceSign" -ArgumentList $bash, $msys2Path -ScriptBlock {
     )
     Set-Location $msys2Path
     Write-Output "forceSign"
-    Invoke-Expression "$bash --login -c 'gpg --recv-keys EFD16019AE4FF531; pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531; exit'"
+    Invoke-Expression "$bash --login -c 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
 } | Receive-Job -Wait
 
 if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.minttyrc" 2>$null).hash -ne "82000DF19CD678EAC0B5F763FBA59A603FBC8BF2626D2A4B6F13966237BA24B6") {
@@ -1091,7 +1359,7 @@ if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.minttyrc" 2>$null).hash 
     ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
 }
 
-if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.hgrc" 2>$null).hash -ne "00264126CD28625A4B8B7E2C419A8ECAEB152461C1E16735A9326DE11D0977E1") {
+if (-Not (Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
     $(
         Write-Output "[ui]`n"
         Write-Output "username = $env:UserName`n"
@@ -1111,7 +1379,7 @@ if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.hgrc" 2>$null).hash -ne 
     ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.hgrc
 }
 
-if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.gitconfig" 2>$null).hash -ne "6F3B03F0A64686EDF7C2AED2EB700CB8351581FD7016A8D016219DFE17089C0A") {
+if (-Not (Test-Path $msys2Path\home\$env:UserName\.gitconfig 2>$null)) {
     $(
         Write-Output "[user]`n"
         Write-Output "name = $env:UserName`n"
@@ -1130,7 +1398,7 @@ if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.gitconfig" 2>$null).hash
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
-    Write-Output "$i" | Out-File -Encoding ascii -Append $msys2Path\etc\pac-base.pk
+    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
 }
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
@@ -1148,27 +1416,12 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
         Write-Output "exit"
     ) | Out-File -Force -NoNewline $build\pacman.sh
     Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
-    Start-Job -Name "installMsys2" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        Write-Output "install base system"
-        Invoke-Expression "$bash --login -c /build/pacman.sh"
-    } | Receive-Job -Wait | Tee-Object $build\pacman.log
+    Start-Bash -Title "installMsys2" -ArgumentList "--login -c /build/pacman.sh" -Log "$build\pacman.log"
     Remove-Item $build\pacman.sh
 }
 
 Remove-Item -Force $build\cert.log 2>&1 | Out-Null
-Start-Job -Name "cert" -ArgumentList $bash, $msys2Path -ScriptBlock {
-    param(
-        $bash,
-        $msys2Path
-    )
-    Set-Location $msys2Path
-    Invoke-Expression "$bash --login -c update-ca-trust"
-} | Receive-Job -Wait | Tee-Object $build\cert.log
+Start-Bash -Title "cert" -ArgumentList "--login -c update-ca-trust"
 
 if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
     $(
@@ -1185,7 +1438,7 @@ if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D2
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk 2>&1 | Out-Null
 foreach ($i in $mingwpackages) {
-    Write-Output "$i" | Out-File -Encoding ascii -Append $msys2Path\etc\pac-mingw.pk
+    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk
 }
 
 function Get-Compiler {
@@ -1207,15 +1460,6 @@ function Get-Compiler {
                 Write-Output "exit"
             ) | Out-File -Force -NoNewline $build\mingw32.sh
             Remove-Item -Force $build\mingw32.log 2>&1 | Out-Null
-            Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
-                param(
-                    $bash,
-                    $msys2Path
-                )
-                Set-Location $msys2Path
-                Invoke-Expression "$bash --login -c /build/mingw32.sh"
-            } | Receive-Job -Wait | Tee-Object $build\mingw32.log
-            Remove-Item $build\mingw32.sh
         }
         Default {
             Write-Host "-------------------------------------------------------------"
@@ -1231,17 +1475,18 @@ function Get-Compiler {
                 Write-Output "exit"
             ) | Out-File -Force -NoNewline $build\mingw64.sh
             Remove-Item -Force $build\mingw64.log 2>&1 | Out-Null
-            Start-Job -Name "firstUpdate" -ArgumentList $bash, $msys2Path -ScriptBlock {
-                param(
-                    $bash,
-                    $msys2Path
-                )
-                Set-Location $msys2Path
-                Invoke-Expression "$bash --login -c /build/mingw64.sh"
-            } | Receive-Job -Wait | Tee-Object $build\mingw64.log
-            Remove-Item $build\mingw64.sh
         }
     }
+    Start-Job -Name "compiler" -ArgumentList $bash, $msys2Path, $bit -ScriptBlock {
+        param(
+            $bash,
+            $msys2Path,
+            $bit
+        )
+        Set-Location $msys2Path
+        Invoke-Expression "$bash --login -c /build/mingw$($bit).sh"
+    } | Receive-Job -Wait | Tee-Object $build\mingw$($bit).log
+    Remove-Item $build\mingw$($bit).sh
 }
 
 if ($build32 -eq "yes") {
@@ -1311,11 +1556,11 @@ if ($jsonObjects.updateSuite -eq 1) {
 
 # update
 Remove-Item -Force $build\update.log 2>&1 | Out-Null
-Start-Job -Name "ExplicitMintty" -ArgumentList $bash -ScriptBlock {
+Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash -ScriptBlock {
     param(
         $bash
     )
-    Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty'"
+    Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
 } | Receive-Job -Wait
 
 Set-Content -Path tempAnswers.txt -Value "no`nno`nno`n" -NoNewline -Force
@@ -1327,14 +1572,7 @@ if (Test-Path $build\update_core) {
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
-    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $msys2Path -ScriptBlock {
-        param(
-            $bash,
-            $msys2Path
-        )
-        Set-Location $msys2Path
-        Invoke-Expression  "$bash --login -c 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
-    } | Receive-Job -Wait | Tee-Object $build\update_core.log
+    Start-Bash -Title "criticalUpdates" -ArgumentList "--login -c 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'" -Log "$build\update_core.log"
     Remove-Item $build\update_core
 }
 
@@ -1418,8 +1656,12 @@ if (-Not (Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile))
 Set-Location $PSScriptRoot
 
 $MSYSTEM = switch ($build64) {
-    yes {"MINGW64"}
-    Default {"MINGW32"}
+    yes {
+        "MINGW64"
+    }
+    Default {
+        "MINGW32"
+    }
 }
 
 Remove-Item -Force $build\compile.log 2>&1 | Out-Null
