@@ -834,21 +834,60 @@ $msysprefix = switch ($msys2) {
 }
 
 # msys2 system
-# Uses 7Zip4Powershell provided by Thomas Freudenberg from https://github.com/thoemmi/7Zip4Powershell. 7Zip4Powershell is licened under LGPL 2.1.
-if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
-    if (-not (Get-Command Expand-7Zip -ErrorAction Ignore)) {
-        Save-Module -Name 7Zip4Powershell -Path $PSScriptRoot
-        Import-Module -Name $PSScriptRoot\7Zip4Powershell
+if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
+    Write-Host "-------------------------------------------------------------`n"
+    Write-Host "- Downloading Wget`n"
+    Write-Host "-------------------------------------------------------------"
+    Set-Location $build
+    if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
+        while (-Not (Test-Path $build\wget.exe)) {
+            $progressPreference = 'silentlyContinue'
+            if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 6>$null)) {
+                Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+            }
+            elseif ($(Test-Connection -Quiet -ComputerName randomderp.com -Count 1 6>$null)) {
+                Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+            }
+            else {
+                Write-Host "-------------------------------------------------------------`n"
+                Write-Host "Script to download necessary components failed.`n"
+                Write-Host "Download and extract this manually to inside $($build):"
+                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
+                Write-Host "-------------------------------------------------------------"
+                Pause
+                exit
+            }
+            $progressPreference = 'Continue'
+            if ((Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+                Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+            }
+            else {
+                Remove-Item $build\wget-pack.exe
+                Write-Host "-------------------------------------------------------------`n"
+                Write-Host "Script to download necessary components failed.`n"
+                Write-Host "Download and extract this manually to inside $($build):"
+                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
+                Write-Host "-------------------------------------------------------------"
+                Pause
+                exit
+            }
+        }
+        Remove-Item $build\wget-pack.exe
     }
+}
+
+
+if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
     Invoke-WebRequest -Resume -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
-        Expand-7Zip $build\msys2-base.tar.xz $build
-        Expand-7Zip $build\msys2-base.tar $PSScriptRoot
-        Remove-Item $build\msys2-base.tar
+        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
         Remove-Item $build\msys2-base.tar.xz
+        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
+        Remove-Item $build\msys2-base.tar
+
     }
     if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "-------------------------------------------------------------`n"
@@ -862,8 +901,6 @@ if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
         pause
         exit
     }
-    Remove-Module -Name 7Zip4Powershell
-    Remove-Item -Recurse -Force .\7Zip4Powershell
 }
 
 # createFolders
