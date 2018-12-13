@@ -1093,7 +1093,7 @@ if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.gitconfig" 2>$null).hash
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
-    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
+    Write-Output "$i" | Out-File -Encoding ascii -Append $msys2Path\etc\pac-base.pk
 }
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
@@ -1148,7 +1148,7 @@ if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D2
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk 2>&1 | Out-Null
 foreach ($i in $mingwpackages) {
-    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk
+    Write-Output "$i" | Out-File -Encoding ascii -Append $msys2Path\etc\pac-mingw.pk
 }
 
 function Get-Compiler {
