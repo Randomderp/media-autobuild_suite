@@ -1454,38 +1454,20 @@ function Get-Compiler {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install $bit bit compiler"
     Write-Host "-------------------------------------------------------------"
-    switch ($bit) {
-        32 {
-            $(
-                Write-Output "mingw32compiler=`"$`(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-i686-&;g' | tr '\n\r' '  ')`"`n"
-                Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`"`n"
-                Write-Output "echo `$mingw32compiler | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed`n"
-                Write-Output "echo `$mingw32compiler | xargs `$nargs pacman -S --noconfirm --ask=20 --needed`n"
-                Write-Output "sleep 3`n"
-                Write-Output "exit"
-            ) | Out-File -Force -NoNewline $build\mingw32.sh
-        }
-        Default {
-            $(
-                Write-Output "mingw64compiler=`"`$(cat /etc/pac-mingw.pk | sed 's;.*;mingw-w64-x86_64-&;g' | tr '\n\r' '  ')`"`n"
-                Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`"`n"
-                Write-Output "echo `$mingw64compiler | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed`n"
-                Write-Output "echo `$mingw64compiler | xargs `$nargs pacman -S --noconfirm --ask=20 --needed`n"
-                Write-Output "sleep 3`n"
-                Write-Output "exit"
-            ) | Out-File -Force -NoNewline $build\mingw64.sh
-        }
-    }
     Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
-    Start-Job -Name "compiler" -ArgumentList $bash, $bit -ScriptBlock {
+    Start-Job -Name "compiler" -ArgumentList $bash, $bit, $msysprefix, $msys2Path	 -ScriptBlock {
         param(
             $bash,
-            [int]$bit
+            [int]$bit,
+            $msysprefix,
+            $msys2Path
         )
         Write-Output "install $bit bit compiler"
-        Invoke-Expression "$bash --login -c /build/mingw$($bit).sh"
+        Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\sed.exe -ArgumentList "'s;.*;mingw-w64-$($msysprefix)-&;g'" -RedirectStandardInput $msys2Path\etc\pac-mingw.pk -RedirectStandardOutput $msys2Path\etc\pac-mingw.temp
+        Invoke-Expression "$bash --login -c 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
+        Invoke-Expression "$bash --login -c 'pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
+        Remove-Item $msys2Path\etc\pac-mingw.temp
     } | Receive-Job -Wait | Tee-Object $build\mingw$($bit).log
-    Remove-Item $build\mingw$($bit).sh
 }
 
 if ($build32 -eq "yes") {
@@ -1665,14 +1647,13 @@ $MSYSTEM = switch ($build64) {
 
 Remove-Item -Force $build\compile.log 2>&1 | Out-Null
 
-$env:MSYSTEM = $MSYSTEM
-$env:MSYS2_PATH_TYPE = "inherit"
-
 #Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\mintty.exe -ArgumentList $("-i /msys2.ico -t `"media-autobuild_suite`" --log $build\compile.log /bin/env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc")
 
-
-Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $build, $bash, $($jsonObjects.Cores), $build32, $build64, $deleteSource, $mp4box, $vpx2, $x2643, $x2652, $other265, $flac, $fdkaac, $mediainfo, $soxB, $ffmpeg, $ffmpegUpdate, $ffmpegChoice, $mplayer2, $mpv, $license2, $strip, $pack, $rtmpdump, $logging, $bmx, $standalone, $aom, $faac, $ffmbc, $curl, $cyanrip2, $redshift, $rav1e, $ripgrep, $dav1d, $vvc -ScriptBlock {
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYSTEM, $build, $bash, $($jsonObjects.Cores), $build32, $build64, $deleteSource, $mp4box, $vpx2, $x2643, $x2652, $other265, $flac, $fdkaac, $mediainfo, $soxB, $ffmpeg, $ffmpegUpdate, $ffmpegChoice, $mplayer2, $mpv, $license2, $strip, $pack, $rtmpdump, $logging, $bmx, $standalone, $aom, $faac, $ffmbc, $curl, $cyanrip2, $redshift, $rav1e, $ripgrep, $dav1d, $vvc -ScriptBlock {
     param(
+        $msys2Path,
+        $MSYSTEM,
         $build,
         $bash,
         $cores,
@@ -1712,8 +1693,8 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $build, $bash, $($
         $vvc
     )
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Write-Host "--login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
-    Invoke-Expression  "$bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc" | Tee-Object $build\compile.log
-} | Receive-Job -Wait
+    Write-Host "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
+    Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
+} | Receive-Job -Wait | Tee-Object $build\compile.log
 
 $env:Path = $Global:TempPath
