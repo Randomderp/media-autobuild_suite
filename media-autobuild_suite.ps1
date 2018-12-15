@@ -1304,32 +1304,25 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.Save()
 }
 if (Test-Path $msys2Path\etc\fstab) {
-    $removefstab = "no"
-    $removefstab = if (($build32 -eq "yes") -and (-Not (Select-String -Pattern "local32" -Path $fstab))) {
-        "yes"
+    if (($build32 -eq "yes") -and (-Not (Select-String -Pattern "local32" -Path $fstab))) {
+        Write-Fstab
     }
     elseif (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) {
-        "yes"
+        Write-Fstab
     }
     elseif (($build64 -eq "yes") -and (-Not (Select-String -Pattern "local64" -Path $fstab))) {
-        "yes"
+        Write-Fstab
     }
     elseif (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) {
-        "yes"
+        Write-Fstab
     }
     elseif (-Not (Select-String -Path $fstab -Pattern "trunk")) {
-        "yes"
+        Write-Fstab
     }
     elseif (((Select-String -Path $fstab -Pattern "trunk")[0].Line -split ' ')[0] -ne $PSScriptRoot) {
-        "yes"
+        Write-Fstab
     }
     elseif (Select-String -Path $fstab -Pattern "build32") {
-        "yes"
-    }
-    else {
-        "no"
-    }
-    if ($removefstab -eq "yes") {
         Write-Fstab
     }
 }
