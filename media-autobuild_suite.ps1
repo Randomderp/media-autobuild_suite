@@ -1392,28 +1392,25 @@ Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
     Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
 }
+foreach ($i in $msyspackages) {
+    Write-Output "$i`n" | Out-File -Append $msys2Path\etc\pac-base.temp
+}
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install msys2 base system"
     Write-Host "-------------------------------------------------------------"
     Remove-Item -Force $build\install_base_failed 2>$null
-    $(
-        Write-Output "msysbasesystem=`"`$(cat /etc/pac-base.pk| tr '\n\r' '  ')`"`n"
-        Write-Output "[[ `"`$(uname)`" = *6.1* ]] && nargs=`"-n 4`"`n"
-        Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -Sw --noconfirm --ask=20 --needed`n"
-        Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -S --noconfirm --ask=20 --needed`n"
-        Write-Output "echo `$msysbasesystem | xargs `$nargs pacman -D --asexplicit`n"
-        Write-Output "sleep 3`n"
-        Write-Output "exit"
-    ) | Out-File -Force -NoNewline $build\pacman.sh
     Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
-    Start-Job -Name "installMsys2" -ArgumentList $bash -ScriptBlock {
-        param($bash)
+    Start-Job -Name "installMsys2" -ArgumentList $bash, -ScriptBlock {
+        param(
+            $bash
+        )
         Write-Output "install base system"
-        Invoke-Expression "$bash --login -c /build/pacman.sh"
+        Invoke-Expression "$bash --login -c 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp'"
+        Invoke-Expression "$bash --login -c 'pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp'"
+        Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
     } | Receive-Job -Wait | Tee-Object $build\pacman.log
-    Remove-Item $build\pacman.sh
 }
 
 Remove-Item -Force $build\cert.log 2>&1 | Out-Null
@@ -1459,6 +1456,7 @@ function Get-Compiler {
         Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\sed.exe -ArgumentList "'s;.*;mingw-w64-$($msysprefix)-&;g'" -RedirectStandardInput $msys2Path\etc\pac-mingw.pk -RedirectStandardOutput $msys2Path\etc\pac-mingw.temp
         Invoke-Expression "$bash --login -c 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
         Invoke-Expression "$bash --login -c 'pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
+        Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
         Remove-Item $msys2Path\etc\pac-mingw.temp
     } | Receive-Job -Wait | Tee-Object $build\mingw$($bit).log
 }
