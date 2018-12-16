@@ -76,10 +76,10 @@ Write-Host "-------------------------------------------------------------"
 Start-Sleep -Seconds 2
 
 $env:Path = if (Get-Command nvcc) {
-    "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;" + $(($env:Path.Split(';') -match "NVIDIA") -join ';')
+    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;" + $(($env:Path.Split(';') -match "NVIDIA") -join ';')
 }
 else {
-    "C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
 }
 
 # Set Build path
@@ -1330,14 +1330,16 @@ else {
     Write-Fstab
 }
 
-Write-Host "-------------------------------------------------------------"
-Write-Host "forcefully signing key"
-Write-Host "-------------------------------------------------------------"
-Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
-    param($bash)
-    Write-Output "Forcefully signing abrepo key"
-    Invoke-Expression "$bash --login -c 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
-} | Receive-Job -Wait
+if (-Not (& "$bash --login -c 'pacman-key -f EFD16019AE4FF531'")) {
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "forcefully signing key"
+    Write-Host "-------------------------------------------------------------"
+    Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
+        param($bash)
+        Write-Output "Forcefully signing abrepo key"
+        Invoke-Expression "$bash --login -c 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
+    } | Receive-Job -Wait
+}
 
 New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
 
