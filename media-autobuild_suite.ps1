@@ -1627,8 +1627,6 @@ if (-Not (Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile))
 }
 
 # compileLocals
-Set-Location $PSScriptRoot
-
 $MSYSTEM = switch ($build64) {
     yes {
         "MINGW64"
@@ -1637,11 +1635,8 @@ $MSYSTEM = switch ($build64) {
         "MINGW32"
     }
 }
-
+Set-Location $PSScriptRoot
 Remove-Item -Force $build\compile.log 2>&1 | Out-Null
-
-#Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\mintty.exe -ArgumentList $("-i /msys2.ico -t `"media-autobuild_suite`" --log $build\compile.log /bin/env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$($jsonObjects.Cores) --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc")
-
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYSTEM, $build, $bash, $($jsonObjects.Cores), $build32, $build64, $deleteSource, $mp4box, $vpx2, $x2643, $x2652, $other265, $flac, $fdkaac, $mediainfo, $soxB, $ffmpeg, $ffmpegUpdate, $ffmpegChoice, $mplayer2, $mpv, $license2, $strip, $pack, $rtmpdump, $logging, $bmx, $standalone, $aom, $faac, $ffmbc, $curl, $cyanrip2, $redshift, $rav1e, $ripgrep, $dav1d, $vvc -ScriptBlock {
     param(
