@@ -1118,10 +1118,10 @@ if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
     if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
         while (-Not (Test-Path $build\wget.exe)) {
             $progressPreference = 'silentlyContinue'
-            if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 6>$null)) {
+            if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore)) {
                 Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
             }
-            elseif ($(Test-Connection -Quiet -ComputerName randomderp.com -Count 1 6>$null)) {
+            elseif ($(Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore)) {
                 Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
             }
             else {
@@ -1343,7 +1343,7 @@ if (-Not (& "$bash --login -c 'pacman-key -f EFD16019AE4FF531'")) {
 
 New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
 
-if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.minttyrc" 2>$null).hash -ne "82000DF19CD678EAC0B5F763FBA59A603FBC8BF2626D2A4B6F13966237BA24B6") {
+if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.minttyrc" -ErrorAction Ignore).hash -ne "82000DF19CD678EAC0B5F763FBA59A603FBC8BF2626D2A4B6F13966237BA24B6") {
     $(
         Write-Output "Locale=en_US`n"
         Write-Output "Charset=UTF-8`n"
@@ -1373,7 +1373,7 @@ if (-Not (Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
     ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.hgrc
 }
 
-if (-Not (Test-Path $msys2Path\home\$env:UserName\.gitconfig 2>$null)) {
+if (-Not (Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
     $(
         Write-Output "[user]`n"
         Write-Output "name = $env:UserName`n"
@@ -1402,7 +1402,7 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install msys2 base system"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\install_base_failed 2>$null
+    Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
     Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
     Start-Job -Name "installMsys2" -ArgumentList $bash, -ScriptBlock {
         param(
@@ -1421,7 +1421,7 @@ Start-Job -Name "cert" -ArgumentList $bash -ScriptBlock {
     Invoke-Expression "$bash --login -c update-ca-trust"
 } | Receive-Job -Wait | Tee-Object $build\cert.log
 
-if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" 2>$null).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
+if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" -ErrorAction Ignore).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
     $(
         Write-Output "@echo off`r`n`r`n"
         Write-Output "setlocal`r`n"
@@ -1680,12 +1680,12 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
         $dav1d,
         $vvc
     )
+    [System.Console]
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     Write-Host "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
-    Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"| Tee-Object $build\compile.log | Out-Host
+    Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
 }
 while (Get-Job -State Running) {
-    Receive-Job -Name "Media-Autobuild_Suite Compile" | Out-Host
+    (Receive-Job -Name "Media-Autobuild_Suite Compile") -replace $([char]27),' $([char]27)' | Tee-Object $build\compile.log | Out-Host
 }
-
 $env:Path = $Global:TempPath
