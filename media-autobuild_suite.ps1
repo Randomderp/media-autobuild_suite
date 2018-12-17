@@ -1330,7 +1330,7 @@ else {
     Write-Fstab
 }
 
-if (-Not (& "$bash --login -c 'pacman-key -f EFD16019AE4FF531'")) {
+if (-Not (Invoke-Expression "$bash --login -c 'pacman-key -f EFD16019AE4FF531'")) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "forcefully signing key"
     Write-Host "-------------------------------------------------------------"
@@ -1394,8 +1394,9 @@ Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
     Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
 }
+Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {
-    Write-Output "$i`n" | Out-File -Append $msys2Path\etc\pac-base.temp
+    Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp
 }
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
@@ -1686,6 +1687,6 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
     Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
 }
 while (Get-Job -State Running) {
-    (Receive-Job -Name "Media-Autobuild_Suite Compile") -replace $([char]27),' $([char]27)' | Tee-Object $build\compile.log | Out-Host
+    $(Receive-Job -Name "Media-Autobuild_Suite Compile") | Tee-Object $build\compile.log | Out-Host
 }
 $env:Path = $Global:TempPath
