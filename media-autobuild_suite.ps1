@@ -22,17 +22,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 
-# Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008. Windows XP doesn't even have pause... This section will fail with an error... :crying:
+# Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008.
 if ($PSVersionTable.PSVersion.Major -lt 3) {
     Write-Host "Your Powershell version is too low!"
-    Write-Host "Please update your version either through an OS update"
+    Write-Host "Please update your version either through an OS upgrade"
     Write-Host "or download the latest version for your system from"
     Write-Host "https://github.com/PowerShell/PowerShell"
     Pause
     exit
 }
 #requires -Version 3.0.0
-# Set window title
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 $PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 
@@ -692,7 +691,6 @@ foreach ($b in ($order.psobject.Properties).Name) {
                 }
             }
             ffmpegChoice {
-                # writeOption
                 function Write-Option {
                     param (
                         [array]$inp
@@ -1678,7 +1676,6 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
     )
     [System.Console]
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Write-Host "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
     Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc"
 }
 while (Get-Job -State Running) {
