@@ -63,25 +63,6 @@ else {
     Set-Location $PSScriptRoot
 }
 
-# Temporarily store the Path
-if (-Not (Test-Path variable:global:TempPath)) {
-    $Global:TempPath = $env:Path
-}
-
-Write-Host "-------------------------------------------------------------"
-Write-Host "If you want to reuse this console (ran powershell then ran this script instead of clicking this script) do"
-Write-Host "`$env:Path = `$Global:TempPath"
-Write-Host "else you won't have your original path in this console until you close and reopen."
-Write-Host "-------------------------------------------------------------"
-Start-Sleep -Seconds 2
-
-$env:Path = if (Get-Command nvcc) {
-    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;" + $(($env:Path.Split(';') -match "NVIDIA") -join ';')
-}
-else {
-    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
-}
-
 # Set Build path
 $build = "$PSScriptRoot\build"
 New-Item -ItemType Directory -Force -Path $build | Out-Null
@@ -1098,6 +1079,22 @@ foreach ($b in ($order.psobject.Properties).Name) {
 }
 # EOQuestions
 
+Write-Host "-------------------------------------------------------------"
+Write-Host "If you want to reuse this console (ran powershell then ran this script instead of clicking this script) do"
+Write-Host "`$env:Path = `$Global:TempPath"
+Write-Host "else you won't have your original path in this console until you close and reopen."
+Write-Host "-------------------------------------------------------------"
+Start-Sleep -Seconds 1
+# Temporarily store the Path
+if (-Not (Test-Path variable:global:TempPath)) {
+    $Global:TempPath = $env:Path
+}
+$env:Path = if (Get-Command nvcc) {
+    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;" + $(($env:Path.Split(';') -match "NVIDIA") -join ';')
+}
+else {
+    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+}
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
 $msysprefix = switch ($msys2) {
