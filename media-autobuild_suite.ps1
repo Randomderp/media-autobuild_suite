@@ -1089,11 +1089,9 @@ Start-Sleep -Seconds 1
 if (-Not (Test-Path variable:global:TempPath)) {
     $Global:TempPath = $env:Path
 }
-$env:Path = if (Get-Command nvcc) {
-    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;" + $(($env:Path.Split(';') -match "NVIDIA") -join ';')
-}
-else {
-    "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+$env:Path = "$PSScriptRoot\msys64\usr\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+if (Get-Command nvcc) {
+    $env:Path += ";" + $(($Global:TempPath.Split(';') -match "NVIDIA") -join ';')
 }
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
