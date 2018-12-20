@@ -1249,39 +1249,36 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "- make a first run"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\firstrun.log 2>&1 | Out-Null
-    Start-Job -Name "firstRun" -ArgumentList $bash -ScriptBlock {
-        param($bash)
+    Start-Job -Name "firstRun" -ArgumentList $bash, $build -ScriptBlock {
+        param($bash, $build)
+        Remove-Item -Force $build\firstrun.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c exit" | Tee-Object $build\firstrun.log
     } | Receive-Job -Wait
     Write-Fstab
     Write-Host "-------------------------------------------------------------"
     Write-Host "First update"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "firstUpdate" -ArgumentList $bash -ScriptBlock {
-        param($bash)
+    Start-Job -Name "firstUpdate" -ArgumentList $bash, $build -ScriptBlock {
+        param($bash, $build)
+        Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'echo First msys2 update; pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
-
     Write-Host "-------------------------------------------------------------"
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "criticalUpdates" -ArgumentList $bash -ScriptBlock {
-        param($bash)
+    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
+        param($bash, $build)
+        Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" | Tee-Object $build\criticalUpdate.log
     } | Receive-Job -Wait
-
     Write-Host "-------------------------------------------------------------"
     Write-Host "second update"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
-    Start-Job -Name "secondUpdate" -ArgumentList $bash -ScriptBlock {
-        param($bash)
+    Start-Job -Name "secondUpdate" -ArgumentList $bash, $build -ScriptBlock {
+        param($bash, $build)
+        Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" | Tee-Object $build\secondUpdate.log
     } | Receive-Job -Wait
-
     # equivalent to setlink.vbs
     $wshShell = New-Object -ComObject WScript.Shell
     $link = $wshShell.CreateShortcut("$PSScriptRoot\mintty.lnk")
@@ -1331,15 +1328,8 @@ if (-Not (Invoke-Expression "$bash --login -c 'pacman-key -f EFD16019AE4FF531'")
 }
 
 New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
-
-if ((Get-FileHash -Path "$msys2Path\home\$env:UserName\.minttyrc" -ErrorAction Ignore).hash -ne "82000DF19CD678EAC0B5F763FBA59A603FBC8BF2626D2A4B6F13966237BA24B6") {
-    $(
-        Write-Output "Locale=en_US`n"
-        Write-Output "Charset=UTF-8`n"
-        Write-Output "Font=Consolas`n"
-        Write-Output "Columns=120`n"
-        Write-Output "Rows=30"
-    ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
+if (-Not (Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
+    Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
 }
 
 if (-Not (Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
@@ -1392,33 +1382,22 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install msys2 base system"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
-    Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
-    Start-Job -Name "installMsys2" -ArgumentList $bash, -ScriptBlock {
-        param(
-            $bash
-        )
+    Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
+        param($bash, $build)
+        Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
+        Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
     } | Receive-Job -Wait
 }
 
-Remove-Item -Force $build\cert.log 2>&1 | Out-Null
-Start-Job -Name "cert" -ArgumentList $bash -ScriptBlock {
-    param($bash)
+Start-Job -Name "cert" -ArgumentList $bash, $build -ScriptBlock {
+    param($bash, $build)
+    Remove-Item -Force $build\cert.log 2>&1 | Out-Null
     Invoke-Expression "$bash --login -c update-ca-trust" | Tee-Object $build\cert.log
 } | Receive-Job -Wait
 
-if ((Get-FileHash -Path "$msys2Path\usr\bin\hg.bat" -ErrorAction Ignore).hash -ne "4206B89D211863E6C856F4E035210FF8597CAAC292D5417753E6D092411387D1") {
-    $(
-        Write-Output "@echo off`r`n`r`n"
-        Write-Output "setlocal`r`n"
-        Write-Output "set HG=%~f0`r`n`r`n"
-        Write-Output "set PYTHONHOME=`r`n"
-        Write-Output "set in=%*`r`n"
-        Write-Output "set out=%in: {= `"{%`r`n"
-        Write-Output "set out=%out:} =}`" %`r`n`r`n"
-        Write-Output "%~dp0python2 %~dp0hg %out%`r`n"
-    ) | Out-File -Force -NoNewline $msys2Path\usr\bin\hg.bat
+if (-Not (Test-Path "$msys2Path\usr\bin\hg.bat")) {
+    Write-Output "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%`r`n" | Out-File -Force -NoNewline $msys2Path\usr\bin\hg.bat
 }
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk 2>&1 | Out-Null
@@ -1516,8 +1495,8 @@ if ($jsonObjects.updateSuite -eq 1) {
 
 # update
 Remove-Item -Force $build\update.log 2>&1 | Out-Null
-Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash -ScriptBlock {
-    param($bash)
+Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash, $build -ScriptBlock {
+    param($bash, $build)
     Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
 } | Receive-Job -Wait
 
@@ -1529,9 +1508,9 @@ if (Test-Path $build\update_core) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "critical updates"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
-    Start-Job -Name "criticalUpdates" -ArgumentList $bash -ScriptBlock {
-        param($bash)
+    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
+        param($bash, $build)
+        Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
         Invoke-Expression  "$bash --login -c 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
     } | Receive-Job -Wait | Tee-Object $build\update_core.log
     Remove-Item $build\update_core
