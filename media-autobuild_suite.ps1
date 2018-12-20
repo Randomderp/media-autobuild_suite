@@ -1480,15 +1480,10 @@ if ($jsonObjects.updateSuite -eq 1) {
     Write-Host "the suite and before reporting an issue.`n"
     Write-Host "It needs to be run separately and with the suite not running!"
     Write-Host "-------------------------------------------------------------"
-    Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\sed.exe -ArgumentList "-n '/start suite update/,/end suite update/p' /build/media-suite_update.sh" -RedirectStandardOutput $PSScriptRoot\temp.sh
     $(
-        Write-Output "#!/bin/bash`n`n"
-        Write-Output "# Run this file by dragging it to mintty shortcut.`n"
-        Write-Output "# Be sure the suite is not running before using it!`n`n"
-        Write-Output "update=yes`n"
-        Get-Content -Raw $PSScriptRoot\temp.sh
+        Write-Output "#!/bin/bash`n`n# Run this file by dragging it to mintty shortcut.`n# Be sure the suite is not running before using it!`n`nupdate=yes`n"
+        Get-Content $build\media-suite_update.sh | Select-Object -Index ($((Select-String -Path $build\media-suite_update.sh -Pattern "start suite update").LineNumber)..$((Select-String -Path $build\media-suite_update.sh -Pattern "end suite update").LineNumber)) | ForEach-Object {$_ + "`n"}
     ) | Out-File -NoNewline -Force $PSScriptRoot\update_suite.sh
-    Remove-Item $PSScriptRoot\temp.sh
 }
 
 # update
@@ -1497,10 +1492,10 @@ Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash, $build -ScriptBlock {
     param($bash, $build)
     Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
 } | Receive-Job -Wait
-
-Set-Content -Path tempAnswers.txt -Value "no`nno`nno`n" -NoNewline -Force
-Start-Process -NoNewWindow -Wait -FilePath $bash -ArgumentList "--login -c /build/media-suite_update.sh --build32=$build32 --build64=$build64" -WorkingDirectory $msys2Path -RedirectStandardInput tempAnswers.txt -RedirectStandardOutput $build\update.log
-Remove-Item tempAnswers.txt
+Start-Job -Name "update" -ArgumentList $bash, $build, $build32, $build64 -ScriptBlock {
+    param($bash, $build, $build32, $build64)
+    Invoke-Expression "$bash --login -c 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'" | Tee-Object $build\update.log
+} | Receive-Job -Wait
 
 if (Test-Path $build\update_core) {
     Write-Host "-------------------------------------------------------------"
