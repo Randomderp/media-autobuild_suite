@@ -1412,21 +1412,19 @@ function Get-Compiler {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install $bit bit compiler"
     Write-Host "-------------------------------------------------------------"
-    Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
-    Start-Job -Name "compiler" -ArgumentList $bash, $bit, $msysprefix, $msys2Path	 -ScriptBlock {
+    Start-Job -Name "compiler" -ArgumentList $bash, $build, $bit, $msysprefix, $msys2Path	 -ScriptBlock {
         param(
             $bash,
+            $build,
             [int]$bit,
             $msysprefix,
             $msys2Path
         )
-        Write-Output "install $bit bit compiler"
-        Start-Process -NoNewWindow -Wait -FilePath $msys2Path\usr\bin\sed.exe -ArgumentList "'s;.*;mingw-w64-$($msysprefix)-&;g'" -RedirectStandardInput $msys2Path\etc\pac-mingw.pk -RedirectStandardOutput $msys2Path\etc\pac-mingw.temp
-        Invoke-Expression "$bash --login -c 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
-        Invoke-Expression "$bash --login -c 'pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
-        Invoke-Expression "$bash --login -c 'pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
+        Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
+        Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
+        Invoke-Expression "$bash --login -c 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed - ;cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
         Remove-Item $msys2Path\etc\pac-mingw.temp
-    } | Receive-Job -Wait | Tee-Object $build\mingw$($bit).log
+    } | Receive-Job -Wait
 }
 
 if ($build32 -eq "yes") {
