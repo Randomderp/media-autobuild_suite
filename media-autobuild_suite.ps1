@@ -1172,10 +1172,7 @@ if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
 }
 
 # createFolders
-function Write-BaseFolders {
-    param (
-        [int]$bit
-    )
+function Write-BaseFolders ([int]$bit) {
     if (-Not (Test-Path $PSScriptRoot\local$bit\share -PathType Container)) {
         Write-Host "-------------------------------------------------------------"
         Write-Host "creating $bit-bit install folders"
@@ -1289,30 +1286,7 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
 }
-if (Test-Path $msys2Path\etc\fstab) {
-    if (($build32 -eq "yes") -and (-Not (Select-String -Pattern "local32" -Path $fstab))) {
-        Write-Fstab
-    }
-    elseif (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) {
-        Write-Fstab
-    }
-    elseif (($build64 -eq "yes") -and (-Not (Select-String -Pattern "local64" -Path $fstab))) {
-        Write-Fstab
-    }
-    elseif (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) {
-        Write-Fstab
-    }
-    elseif (-Not (Select-String -Path $fstab -Pattern "trunk")) {
-        Write-Fstab
-    }
-    elseif (((Select-String -Path $fstab -Pattern "trunk")[0].Line -split ' ')[0] -ne $PSScriptRoot) {
-        Write-Fstab
-    }
-    elseif (Select-String -Path $fstab -Pattern "build32") {
-        Write-Fstab
-    }
-}
-else {
+if ((($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot) -or (Select-String -Path $fstab -Pattern "build32") -or !(Test-Path $msys2Path\etc\fstab))) {
     Write-Fstab
 }
 
@@ -1404,14 +1378,11 @@ foreach ($i in $mingwpackages) {
     Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk
 }
 
-function Get-Compiler {
-    param (
-        [int]$bit
-    )
+function Get-Compiler ([int]$bit) {
     Write-Host "-------------------------------------------------------------"
     Write-Host "install $bit bit compiler"
     Write-Host "-------------------------------------------------------------"
-    Start-Job -Name "compiler" -ArgumentList $bash, $build, $bit, $msysprefix, $msys2Path	 -ScriptBlock {
+    Start-Job -Name "compiler" -ArgumentList $bash, $build, $bit, $msysprefix, $msys2Path -ScriptBlock {
         param(
             $bash,
             $build,
@@ -1641,8 +1612,8 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
     [System.Console]
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc" | Tee-Object $build\compile.log
-}
+} | Receive-Job -Wait
 while (Get-Job -State Running) {
-    $(Receive-Job -Name "Media-Autobuild_Suite Compile") | Out-Host
+    $( -Name "Media-Autobuild_Suite Compile") | Out-Host
 }
 $env:Path = $Global:TempPath
