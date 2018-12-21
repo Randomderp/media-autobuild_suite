@@ -1084,11 +1084,9 @@ Write-Host "else you won't have your original path in this console until you clo
 Write-Host "If you use control+C at any time durring the script, make sure to run"
 Write-Host "Get-Job | Remove-Job -Force"
 Write-Host "-------------------------------------------------------------"
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 2
 # Temporarily store the Path
-if (-Not (Test-Path variable:global:TempPath)) {
-    $Global:TempPath = $env:Path
-}
+if (-Not (Test-Path variable:global:TempPath)) {$Global:TempPath = $env:Path}
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
@@ -1100,8 +1098,6 @@ $msysprefix = switch ($msys2) {
         "x86_64"
     }
 }
-
-# msys2 system
 if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Downloading Wget`n"
@@ -1242,36 +1238,36 @@ if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
         Write-Host "-------------------------------------------------------------"
         Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
     }
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "- make a first run"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "firstRun" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "- make a first run"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\firstrun.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c exit" | Tee-Object $build\firstrun.log
     } | Receive-Job -Wait
     Write-Fstab
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "First update"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "firstUpdate" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "First update"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'echo First msys2 update; pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "critical updates"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "critical updates"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" | Tee-Object $build\criticalUpdate.log
     } | Receive-Job -Wait
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "second update"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "secondUpdate" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "second update"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" | Tee-Object $build\secondUpdate.log
     } | Receive-Job -Wait
@@ -1291,11 +1287,11 @@ if ((($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab))
 }
 
 if (-Not (Invoke-Expression "$bash --login -c 'pacman-key -f EFD16019AE4FF531'")) {
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "forcefully signing key"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "forcefully signing key"
+        Write-Host "-------------------------------------------------------------"
         Invoke-Expression "$bash --login -c 'echo Forcefully signing abrepo key; pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
     } | Receive-Job -Wait
 }
@@ -1352,11 +1348,11 @@ foreach ($i in $msyspackages) {
 }
 
 if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "install msys2 base system"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "install msys2 base system"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
         Invoke-Expression "$bash --login -c 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
@@ -1379,9 +1375,6 @@ foreach ($i in $mingwpackages) {
 }
 
 function Get-Compiler ([int]$bit) {
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "install $bit bit compiler"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "compiler" -ArgumentList $bash, $build, $bit, $msysprefix, $msys2Path -ScriptBlock {
         param(
             $bash,
@@ -1390,6 +1383,9 @@ function Get-Compiler ([int]$bit) {
             $msysprefix,
             $msys2Path
         )
+        Write-Host "-------------------------------------------------------------"
+    Write-Host "install $bit bit compiler"
+    Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
         Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
         Invoke-Expression "$bash --login -c 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed - ;cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
@@ -1468,11 +1464,11 @@ Start-Job -Name "update" -ArgumentList $bash, $build, $build32, $build64 -Script
 } | Receive-Job -Wait
 
 if (Test-Path $build\update_core) {
-    Write-Host "-------------------------------------------------------------"
-    Write-Host "critical updates"
-    Write-Host "-------------------------------------------------------------"
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
+        Write-Host "-------------------------------------------------------------"
+        Write-Host "critical updates"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
         Invoke-Expression  "$bash --login -c 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
     } | Receive-Job -Wait | Tee-Object $build\update_core.log
