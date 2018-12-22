@@ -1,26 +1,28 @@
 #!/usr/bin/env powershell
 
-#-----------------------------------------------------------------------------
-# LICENSE --------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-#  This Windows Batchscript is for setup a compiler environment for building
-#  ffmpeg and other media tools under Windows.
-#
-#    Copyright (C) 2013  jb_alvarado
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#-----------------------------------------------------------------------------
+<#
+-----------------------------------------------------------------------------
+ LICENSE --------------------------------------------------------------------
+-----------------------------------------------------------------------------
+  This Windows Batchscript is for setup a compiler environment for building
+  ffmpeg and other media tools under Windows.
+
+    Copyright (C) 2013  jb_alvarado
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-----------------------------------------------------------------------------
+#>
 
 # Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008.
 if ($PSVersionTable.PSVersion.Major -lt 3) {
@@ -122,52 +124,10 @@ $jsonObjects = [PSCustomObject]@{
     logging      = 0
     updateSuite  = 0
 }
-<#
-$order = @("msys2Arch", "arch", "license2", "standalone", "vpx2", "aom", "rav1e", "dav1d", "x2643", "x2652", "other265", "vvc", "flac", "fdkaac", "faac", "mediainfo", "soxB", "ffmpegB2", "ffmpegUpdate", "ffmpegChoice", "mp4box", "rtmpdump", "mplayer2", "mpv", "bmx", "curl", "ffmbc", "cyanrip2", "redshift", "ripgrep", "cores", "deleteSource", "strip", "pack", "logging", "updateSuite")
-$order = [PSCustomObject]@{
-    10 = "msys2Arch"
-    11 = "arch"
-    12 = "license2"
-    13 = "standalone"
-    14 = "vpx2"
-    15 = "aom"
-    16 = "rav1e"
-    17 = "dav1d"
-    18 = "x2643"
-    19 = "x2652"
-    20 = "other265"
-    21 = "vvc"
-    22 = "flac"
-    23 = "fdkaac"
-    24 = "faac"
-    25 = "mediainfo"
-    26 = "soxB"
-    27 = "ffmpegB2"
-    28 = "ffmpegUpdate"
-    29 = "ffmpegChoice"
-    30 = "mp4box"
-    31 = "rtmpdump"
-    32 = "mplayer2"
-    33 = "mpv"
-    34 = "bmx"
-    35 = "curl"
-    36 = "ffmbc"
-    37 = "cyanrip2"
-    38 = "redshift"
-    39 = "ripgrep"
-    40 = "cores"
-    41 = "deleteSource"
-    42 = "strip"
-    43 = "pack"
-    44 = "logging"
-    45 = "updateSuite"
-}
-#>
-$writeProperties = $false
 
 if (Test-Path -Path $json) {
     $jsonProperties = Get-Content $json | ConvertFrom-Json
-    foreach ($a in ($jsonObjects.psobject.Properties.Name)) {
+    foreach ($a in $jsonObjects.psobject.Properties.Name) {
         if ($jsonProperties.$a -ne 0) {
             $jsonObjects.$a = $jsonProperties.$a
         }
@@ -182,8 +142,7 @@ else {
 }
 
 # sytemVars
-foreach ($a in ($order.psobject.Properties.Name)) {
-    #$a = $order.$b
+foreach ($a in $jsonObjects.psobject.Properties.Name) {
     if ($a -eq "msys2Arch") {
         $msys2 = switch ($jsonObjects.msys2Arch) {
             1 {
@@ -1053,7 +1012,7 @@ foreach ($a in ($order.psobject.Properties.Name)) {
 # EOQuestions
 
 Write-Host "-------------------------------------------------------------"
-Write-Host "If you want to reuse this console (ran powershell then ran this script instead of clicking this script) do"
+Write-Host "If you want to reuse this console do"
 Write-Host "`$env:Path = `$Global:TempPath"
 Write-Host "else you won't have your original path in this console until you close and reopen."
 Write-Host "If you use control+C at any time durring the script, make sure to run"
@@ -1128,7 +1087,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\msys2-base.tar
 
     }
-    if (!(Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
+    if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "-------------------------------------------------------------`n"
         Write-Host "- Download msys2 basic system failed,"
         Write-Host "- please download it manually from:"
@@ -1208,7 +1167,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Write-Host "First update"
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
+        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
@@ -1310,7 +1269,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo install base system;  cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
+        Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
     } | Receive-Job -Wait
 }
 
@@ -1343,7 +1302,7 @@ function Get-Compiler ([int]$bit) {
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
         Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
-        Invoke-Expression "$bash -lc 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
+        Invoke-Expression "$bash -lc 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
         Remove-Item $msys2Path\etc\pac-mingw.temp
     } | Receive-Job -Wait
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
@@ -1477,6 +1436,7 @@ $MSYSTEM = switch ($build32) {
 }
 Set-Location $PSScriptRoot
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$Host.UI.RawUI.WindowTitle = "MABSbat"
 Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYSTEM, $build, $bash, $($jsonObjects.Cores), $build32, $build64, $deleteSource, $mp4box, $vpx2, $x2643, $x2652, $other265, $flac, $fdkaac, $mediainfo, $soxB, $ffmpeg, $ffmpegUpdate, $ffmpegChoice, $mplayer2, $mpv, $license2, $strip, $pack, $rtmpdump, $logging, $bmx, $standalone, $aom, $faac, $ffmbc, $curl, $cyanrip2, $redshift, $rav1e, $ripgrep, $dav1d, $vvc -ScriptBlock {
     param(
         $msys2Path,

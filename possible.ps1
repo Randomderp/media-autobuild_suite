@@ -1,7 +1,7 @@
 # possible things I might add
 # ignore this for now, might actually do it later
 param(
-    [ValidateSet("64", "32", "both")][string]$bit,
+    [ValidateSet("64", "32", "both")][string]$buildbit,
     [ValidateSet("Non-free", "GPLv3", "GPLv2.1", "LGPLv3", "LGPLv2.1")]$license,
     [switch]$standalone,
     [switch]$vpx,
