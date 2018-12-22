@@ -1167,7 +1167,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Write-Host "First update"
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
+        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates; sed -i `"s;^^IgnorePkg.*; #&;`" /etc/pacman.conf'" | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
