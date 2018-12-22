@@ -122,6 +122,8 @@ $jsonObjects = [PSCustomObject]@{
     logging      = 0
     updateSuite  = 0
 }
+<#
+$order = @("msys2Arch", "arch", "license2", "standalone", "vpx2", "aom", "rav1e", "dav1d", "x2643", "x2652", "other265", "vvc", "flac", "fdkaac", "faac", "mediainfo", "soxB", "ffmpegB2", "ffmpegUpdate", "ffmpegChoice", "mp4box", "rtmpdump", "mplayer2", "mpv", "bmx", "curl", "ffmbc", "cyanrip2", "redshift", "ripgrep", "cores", "deleteSource", "strip", "pack", "logging", "updateSuite")
 $order = [PSCustomObject]@{
     10 = "msys2Arch"
     11 = "arch"
@@ -160,6 +162,7 @@ $order = [PSCustomObject]@{
     44 = "logging"
     45 = "updateSuite"
 }
+#>
 $writeProperties = $false
 
 $coresrecommend = switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors) {
@@ -173,7 +176,7 @@ $coresrecommend = switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').Nu
 
 if (Test-Path -Path $json) {
     $jsonProperties = Get-Content $json | ConvertFrom-Json
-    foreach ($a in ($jsonObjects.psobject.Properties).Name) {
+    foreach ($a in ($jsonObjects.psobject.Properties.Name)) {
         if ($jsonProperties.$a -ne 0) {
             $jsonObjects.$a = $jsonProperties.$a
         }
@@ -188,8 +191,8 @@ else {
 }
 
 # sytemVars
-foreach ($b in ($order.psobject.Properties).Name) {
-    $a = $order.$b
+foreach ($a in ($order.psobject.Properties.Name)) {
+    #$a = $order.$b
     if ($a -eq "msys2Arch") {
         $msys2 = switch ($jsonObjects.msys2Arch) {
             1 {
