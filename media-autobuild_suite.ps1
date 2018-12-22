@@ -165,15 +165,6 @@ $order = [PSCustomObject]@{
 #>
 $writeProperties = $false
 
-$coresrecommend = switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors) {
-    1 {
-        1
-    }
-    Default {
-        (Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2
-    }
-}
-
 if (Test-Path -Path $json) {
     $jsonProperties = Get-Content $json | ConvertFrom-Json
     foreach ($a in ($jsonObjects.psobject.Properties.Name)) {
@@ -206,39 +197,17 @@ foreach ($a in ($order.psobject.Properties.Name)) {
     elseif ($jsonObjects.$a -eq 0) {
         while (1..$(
                 switch ($a) {
-                    arch {
-                        3
-                    }
-                    license2 {
-                        5
-                    }
-                    x2643 {
-                        7
-                    }
-                    x2652 {
-                        7
-                    }
-                    ffmpegB2 {
-                        5
-                    }
-                    ffmpegUpdate {
-                        3
-                    }
-                    ffmpegChoice {
-                        4
-                    }
-                    mpv {
-                        3
-                    }
-                    curl {
-                        7
-                    }
-                    cores {
-                        99
-                    }
-                    Default {
-                        2
-                    }
+                    arch {3}
+                    license2 {5}
+                    x2643 {7}
+                    x2652 {7}
+                    ffmpegB2 {5}
+                    ffmpegUpdate {3}
+                    ffmpegChoice {4}
+                    mpv {3}
+                    curl {7}
+                    cores {999}
+                    Default {2}
                 }
             ) -notcontains $jsonObjects.$a) {
             Write-host "-------------------------------------------------------------------------------"
@@ -470,7 +439,10 @@ foreach ($a in ($order.psobject.Properties.Name)) {
                     Write-host "7 = mbedTLS backend`n"
                 }
                 cores {
-                    Write-Host "Recommended: $coresrecommend`n"
+                    Write-Host "Recommended: $(switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors) {
+                        1 {1}
+                        Default {(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2}
+                    })`n"
                 }
                 deleteSource {
                     Write-host "1 = Yes [recommended]"
