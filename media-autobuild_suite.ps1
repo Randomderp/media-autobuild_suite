@@ -716,7 +716,7 @@ foreach ($b in ($order.psobject.Properties).Name) {
                 switch ($jsonObjects.ffmpegChoice) {
                     1 {
                         $ffmpegChoice = "y"
-                        if (-Not (Test-Path -PathType Leaf $ffmpegoptions)) {
+                        if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
                             Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'" | Out-File $ffmpegoptions
                             Write-Option $ffmpeg_options_builtin | Out-File -Append $ffmpegoptions
                             Write-Output "# Common options" | Out-File -Append $ffmpegoptions
@@ -731,7 +731,7 @@ foreach ($b in ($order.psobject.Properties).Name) {
                             Write-Host "-------------------------------------------------------------------------------"
                             Pause
                         }
-                        if (-Not (Test-Path -PathType Leaf $mpvoptions)) {
+                        if (!(Test-Path -PathType Leaf $mpvoptions)) {
                             Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them." | Out-File $mpvoptions
                             Write-Option $mpv_options_builtin | Out-File -Append $mpvoptions
                             Write-Output "`n# Common options or overriden defaults" | Out-File -Append $mpvoptions
@@ -972,7 +972,7 @@ foreach ($b in ($order.psobject.Properties).Name) {
             switch ($jsonObjects.ffmpegChoice) {
                 1 {
                     $ffmpegChoice = "y"
-                    if (-Not (Test-Path -PathType Leaf $ffmpegoptions)) {
+                    if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
                         Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'" | Out-File $ffmpegoptions
                         Write-Option $ffmpeg_options_builtin | Out-File -Append $ffmpegoptions
                         Write-Output "# Common options" | Out-File -Append $ffmpegoptions
@@ -987,7 +987,7 @@ foreach ($b in ($order.psobject.Properties).Name) {
                         Write-Host "-------------------------------------------------------------------------------"
                         Pause
                     }
-                    if (-Not (Test-Path -PathType Leaf $mpvoptions)) {
+                    if (!(Test-Path -PathType Leaf $mpvoptions)) {
                         Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them." | Out-File $mpvoptions
                         Write-Option $mpv_options_builtin | Out-File -Append $mpvoptions
                         Write-Output "`n# Common options or overriden defaults" | Out-File -Append $mpvoptions
@@ -1086,7 +1086,7 @@ Write-Host "Get-Job | Remove-Job -Force"
 Write-Host "-------------------------------------------------------------"
 Start-Sleep -Seconds 2
 # Temporarily store the Path
-if (-Not (Test-Path variable:global:TempPath)) {$Global:TempPath = $env:Path}
+if (!(Test-Path variable:global:TempPath)) {$Global:TempPath = $env:Path}
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
@@ -1098,13 +1098,13 @@ $msysprefix = switch ($msys2) {
         "x86_64"
     }
 }
-if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
+if (!(Test-Path $msys2Path\usr\bin\wget.exe)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Downloading Wget`n"
     Write-Host "-------------------------------------------------------------"
     Set-Location $build
-    if ((-Not (Test-Path $build\7za.exe)) -or (-Not (Test-Path $build\grep.exe))) {
-        while (-Not (Test-Path $build\wget.exe)) {
+    if ((!(Test-Path $build\7za.exe)) -or (!(Test-Path $build\grep.exe))) {
+        while (!(Test-Path $build\wget.exe)) {
             $progressPreference = 'silentlyContinue'
             if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore)) {
                 Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
@@ -1141,7 +1141,7 @@ if (-Not (Test-Path $msys2Path\usr\bin\wget.exe)) {
 }
 
 
-if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
+if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
@@ -1153,7 +1153,7 @@ if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\msys2-base.tar
 
     }
-    if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
+    if (!(Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "-------------------------------------------------------------`n"
         Write-Host "- Download msys2 basic system failed,"
         Write-Host "- please download it manually from:"
@@ -1169,7 +1169,7 @@ if (-Not (Test-Path $msys2Path\msys2_shell.cmd)) {
 
 # createFolders
 function Write-BaseFolders ([int]$bit) {
-    if (-Not (Test-Path $PSScriptRoot\local$bit\share -PathType Container)) {
+    if (!(Test-Path $PSScriptRoot\local$bit\share -PathType Container)) {
         Write-Host "-------------------------------------------------------------"
         Write-Host "creating $bit-bit install folders"
         Write-Host "-------------------------------------------------------------"
@@ -1210,27 +1210,7 @@ function Write-Fstab {
     }
 }
 
-function Start-Bash {
-    param (
-        [string]$Title,
-        [string]$ArgumentList,
-        [string]$Log,
-        $Workingdir = $msyspath
-    )
-    if (-Not $log) {
-        $log = "$build\$($title).log"
-    }
-    Set-Location $workingdir
-    Start-Job -Name $title -ArgumentList $bash, $argument -ScriptBlock {
-        param(
-            $bash,
-            $argument
-        )
-        Invoke-Expression "$bash $argument"
-    } | Receive-Job -Wait | Tee-Object $log
-}
-
-if (-Not (Test-Path $PSScriptRoot\mintty.lnk)) {
+if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
     if ($msys2 -eq "msys32") {
         Write-Host "-------------------------------------------------------------`n"
@@ -1286,7 +1266,7 @@ if ((($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab))
     Write-Fstab
 }
 
-if (-Not (Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
+if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
         Write-Host "-------------------------------------------------------------"
@@ -1297,11 +1277,11 @@ if (-Not (Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
 }
 
 New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
-if (-Not (Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
+if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
     Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
 }
 
-if (-Not (Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
+if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
     $(
         Write-Output "[ui]`n"
         Write-Output "username = $env:UserName`n"
@@ -1321,7 +1301,7 @@ if (-Not (Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
     ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.hgrc
 }
 
-if (-Not (Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
+if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
     $(
         Write-Output "[user]`n"
         Write-Output "name = $env:UserName`n"
@@ -1347,7 +1327,7 @@ foreach ($i in $msyspackages) {
     Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp
 }
 
-if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
+if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "-------------------------------------------------------------"
@@ -1365,7 +1345,7 @@ Start-Job -Name "cert" -ArgumentList $bash, $build -ScriptBlock {
     Invoke-Expression "$bash -lc update-ca-trust" | Tee-Object $build\cert.log
 } | Receive-Job -Wait
 
-if (-Not (Test-Path "$msys2Path\usr\bin\hg.bat")) {
+if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {
     Write-Output "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%`r`n" | Out-File -Force -NoNewline $msys2Path\usr\bin\hg.bat
 }
 
@@ -1413,7 +1393,7 @@ Write-Host "update autobuild suite"
 Write-Host "-------------------------------------------------------------"
 $scripts = "compile", "helper", "update"
 foreach ($s in $scripts) {
-    if (-Not (Test-Path $build\media-suite_$($s).sh)) {
+    if (!(Test-Path $build\media-suite_$($s).sh)) {
         Invoke-WebRequest -Resume -MaximumRetryCount 10 -RetryIntervalSec 2 -OutFile $build\media-suite_$($s).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
     }
 }
@@ -1511,14 +1491,8 @@ if ($build64 -eq "yes") {Write-Profile -bit 64}
 
 # loginProfile
 if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\profile.pacnew $msys2Path\etc\profile}
-if (-Not (Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {
-    $(
-        Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then"
-        Write-Output "   source /local64/etc/profile2.local"
-        Write-Output "elif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then"
-        Write-Output "   source /local32/etc/profile2.local"
-        Write-Output "fi"
-    ) | Out-File $msys2Path\etc\profile.d\Zab-suite.sh
+if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {
+    Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-File -NoNewline -Force $msys2Path\etc\profile.d\Zab-suite.sh
 }
 
 # compileLocals
