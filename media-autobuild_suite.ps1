@@ -1355,7 +1355,7 @@ if (-Not (Test-Path $msys2Path\usr\bin\make.exe)) {
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
-        Invoke-Expression "$bash --login -c 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
+        Invoke-Expression "$bash --login -c 'echo install base system;  cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
     } | Receive-Job -Wait
 }
 
@@ -1384,11 +1384,11 @@ function Get-Compiler ([int]$bit) {
             $msys2Path
         )
         Write-Host "-------------------------------------------------------------"
-    Write-Host "install $bit bit compiler"
-    Write-Host "-------------------------------------------------------------"
+        Write-Host "install $bit bit compiler"
+        Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
         Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
-        Invoke-Expression "$bash --login -c 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed - ;cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
+        Invoke-Expression "$bash --login -c 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
         Remove-Item $msys2Path\etc\pac-mingw.temp
     } | Receive-Job -Wait
 }
