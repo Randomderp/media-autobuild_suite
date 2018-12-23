@@ -24,7 +24,6 @@
 -----------------------------------------------------------------------------
 #>
 
-# Some functions do not have any counter parts in ps version below 3, aka XP, 2003, 2008.
 if ($PSVersionTable.PSVersion.Major -lt 3) {
     Write-Host "Your Powershell version is too low!"
     Write-Host "Please update your version either through an OS upgrade"
@@ -202,6 +201,7 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                 }
                 dav1d {
                     Write-Host "Build dav1d [Alternative, faster AV1 decoder]?`n"
+                    Write-host "Binaries being built depends on 'standalone=y' and are always static.`n"
                 }
                 x2643 {
                     Write-host "Build x264 [H.264 encoder]?"
@@ -370,7 +370,7 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                     Write-host "2 = No"
                     Write-host "3 = Shared"
                     Write-host "4 = Both static and shared [shared goes to an isolated directory]"
-                    Write-host "5 = Shared-only with some shared libs ^(libass, freetype and fribidi^)`n"
+                    Write-host "5 = Shared-only with some shared libs (libass, freetype and fribidi)`n"
                 }
                 ffmpegUpdate {
                     Write-host "1 = Yes"
@@ -1167,7 +1167,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Write-Host "First update"
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates; sed -i `"s;^^IgnorePkg.*; #&;`" /etc/pacman.conf'" | Tee-Object $build\firstUpdate.log
+        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
@@ -1196,17 +1196,13 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
 }
-if ((($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot) -or (Select-String -Path $fstab -Pattern "build32") -or !(Test-Path $msys2Path\etc\fstab))) {
+if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot))) {
     Write-Fstab
 }
-
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
-        Write-Host "-------------------------------------------------------------"
-        Write-Host "forcefully signing key"
-        Write-Host "-------------------------------------------------------------"
-        Invoke-Expression "$bash -lc 'echo Forcefully signing abrepo key; pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
+        Invoke-Expression "$bash -lc 'echo -e -------------------------------------------------------------\nForcefully signing abrepo key\n-------------------------------------------------------------; pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
     } | Receive-Job -Wait
 }
 
