@@ -1198,6 +1198,7 @@ if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern 
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
+
         Write-Host "-------------------------------------------------------------`nForcefully signing abrepo key`n-------------------------------------------------------------"
         Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
     } | Receive-Job -Wait
@@ -1246,13 +1247,9 @@ if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
 }
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
-foreach ($i in $msyspackages) {
-    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk
-}
+foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
 Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
-foreach ($i in $msyspackages) {
-    Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp
-}
+foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
 
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
@@ -1263,6 +1260,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
         Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
+        Remove-Item $msys2Path\etc\pac-base.temp
     } | Receive-Job -Wait
 }
 
@@ -1277,9 +1275,7 @@ if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {
 }
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk 2>&1 | Out-Null
-foreach ($i in $mingwpackages) {
-    Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk
-}
+foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk}
 
 function Get-Compiler ([int]$bit) {
     Start-Job -Name "compiler" -ArgumentList $bash, $build, $bit, $msysprefix, $msys2Path -ScriptBlock {
