@@ -708,7 +708,7 @@ Write-Host "Get-Job | Remove-Job -Force"
 Write-Host "-------------------------------------------------------------"
 Start-Sleep -Seconds 2
 # Temporarily store the Path
-if (!(Test-Path variable:global:TempPath)) {$Global:TempPath = $env:Path}
+if (!(Test-Path Global:TempPath)) {$Global:TempPath = $env:Path}
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
@@ -744,10 +744,12 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             exit
         }
         $progressPreference = 'Continue'
-        if ((Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+        $stream = ([IO.StreamReader]$((Resolve-Path $build\wget-pack.exe).ProviderPath)).BaseStream
+        if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
             Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
         }
         else {
+            $stream.Close()
             Remove-Item $build\wget-pack.exe
             Write-Host "-------------------------------------------------------------`n"
             Write-Host "Script to download necessary components failed.`n"
@@ -757,12 +759,13 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Pause
             exit
         }
+        $stream.Close()
         Remove-Item $build\wget-pack.exe
     }
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
-    Invoke-WebRequest -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
+    Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
         Invoke-Expression -Command "cmd.exe /c '$build\7za.exe x msys2-base.tar.xz -so | $build\7za.exe x -aoa -si -ttar -o..'"
         Remove-Item $build\msys2-base.tar.xz
@@ -986,7 +989,7 @@ Write-Host "-------------------------------------------------------------"
 $scripts = "compile", "helper", "update"
 foreach ($s in $scripts) {
     if (!(Test-Path $build\media-suite_$($s).sh)) {
-        Invoke-WebRequest -MaximumRetryCount 10 -RetryIntervalSec 2 -OutFile $build\media-suite_$($s).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
+        Invoke-WebRequest -OutFile $build\media-suite_$($s).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
     }
 }
 if ($jsonObjects.updateSuite -eq 1) {
