@@ -1032,49 +1032,45 @@ $msysprefix = switch ($msys2) {
         "x86_64"
     }
 }
-if (!(Test-Path $msys2Path\usr\bin\wget.exe)) {
-    Write-Host "-------------------------------------------------------------`n"
-    Write-Host "- Downloading Wget`n"
-    Write-Host "-------------------------------------------------------------"
+
+if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Set-Location $build
-    if ((!(Test-Path $build\7za.exe)) -or (!(Test-Path $build\grep.exe))) {
-        while (!(Test-Path $build\wget.exe)) {
-            $progressPreference = 'silentlyContinue'
-            if ($(Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore)) {
-                Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-            }
-            elseif ($(Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore)) {
-                Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
-            }
-            else {
-                Write-Host "-------------------------------------------------------------`n"
-                Write-Host "Script to download necessary components failed.`n"
-                Write-Host "Download and extract this manually to inside $($build):"
-                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
-                Write-Host "-------------------------------------------------------------"
-                Pause
-                exit
-            }
-            $progressPreference = 'Continue'
-            if ((Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-            }
-            else {
-                Remove-Item $build\wget-pack.exe
-                Write-Host "-------------------------------------------------------------`n"
-                Write-Host "Script to download necessary components failed.`n"
-                Write-Host "Download and extract this manually to inside $($build):"
-                Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
-                Write-Host "-------------------------------------------------------------"
-                Pause
-                exit
-            }
+    if (!(Test-Path $build\7za.exe)) {
+        Write-Host "-------------------------------------------------------------`n"
+        Write-Host "- Downloading Wget`n"
+        Write-Host "-------------------------------------------------------------"
+        $progressPreference = 'silentlyContinue'
+        if (Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore) {
+            Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+        }
+        elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore) {
+            Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+        }
+        else {
+            Write-Host "-------------------------------------------------------------`n"
+            Write-Host "Script to download necessary components failed.`n"
+            Write-Host "Download and extract this manually to inside $($build):"
+            Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
+            Write-Host "-------------------------------------------------------------"
+            Pause
+            exit
+        }
+        $progressPreference = 'Continue'
+        if ((Get-FileHash -Algorithm SHA256 -Path "$build\wget-pack.exe").hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+            Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+        }
+        else {
+            Remove-Item $build\wget-pack.exe
+            Write-Host "-------------------------------------------------------------`n"
+            Write-Host "Script to download necessary components failed.`n"
+            Write-Host "Download and extract this manually to inside $($build):"
+            Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
+            Write-Host "-------------------------------------------------------------"
+            Pause
+            exit
         }
         Remove-Item $build\wget-pack.exe
     }
-}
-
-if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
@@ -1099,26 +1095,20 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
 
 # createFolders
 function Write-BaseFolders ([int]$bit) {
-    if (!(Test-Path $PSScriptRoot\local$bit\share -PathType Container)) {
         Write-Host "-------------------------------------------------------------"
         Write-Host "creating $bit-bit install folders"
         Write-Host "-------------------------------------------------------------"
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\etc | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\include | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\share | Out-Null
-    }
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\etc -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\include -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig -ErrorAction Ignore | Out-Null
+        New-Item -ItemType Directory $PSScriptRoot\local$bit\share -ErrorAction Ignore | Out-Null
 }
-if ($build64 -eq "yes") {
-    Write-BaseFolders -bit 64
-}
-if ($build32 -eq "yes") {
-    Write-BaseFolders -bit 32
-}
+if ($build64 -eq "yes") {Write-BaseFolders -bit 64}
+if ($build32 -eq "yes") {Write-BaseFolders -bit 32}
 $fstab = "$msys2Path\etc\fstab"
 # checkFstab
 function Write-Fstab {
@@ -1132,12 +1122,8 @@ function Write-Fstab {
         Write-Output "$msys2Path\mingw32\ /mingw32`n"
         Write-Output "$msys2Path\mingw64\ /mingw64`n"
     ) | Out-File -NoNewline -Force $fstab
-    if ($build32 -eq "yes") {
-        Write-Output "$PSScriptRoot\local32\ /local32" | Out-File -NoNewline -Append $fstab
-    }
-    if ($build64 -eq "yes") {
-        Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -NoNewline -Append $fstab
-    }
+    if ($build32 -eq "yes") {Write-Output "$PSScriptRoot\local32\ /local32" | Out-File -NoNewline -Append $fstab}
+    if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -NoNewline -Append $fstab}
 }
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
@@ -1198,7 +1184,6 @@ if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern 
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
-
         Write-Host "-------------------------------------------------------------`nForcefully signing abrepo key`n-------------------------------------------------------------"
         Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
     } | Receive-Job -Wait
@@ -1472,7 +1457,5 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc" | Tee-Object $build\compile.log
 }
-while (Get-Job -State Running) {
-    Receive-Job -Name "Media-Autobuild_Suite Compile" | Out-Host
-}
+while (Get-Job -State Running) {Receive-Job -Name "Media-Autobuild_Suite Compile" | Out-Host}
 $env:Path = $Global:TempPath
