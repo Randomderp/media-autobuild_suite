@@ -142,17 +142,7 @@ else {
 
 # sytemVars
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
-    if ($a -eq "msys2Arch") {
-        $msys2 = switch ($jsonObjects.msys2Arch) {
-            1 {
-                "msys32"
-            }
-            2 {
-                "msys64"
-            }
-        }
-    }
-    elseif ($jsonObjects.$a -eq 0) {
+    if ($jsonObjects.$a -eq 0) {
         while (1..$(
                 switch ($a) {
                     arch {3}
@@ -171,167 +161,42 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
             Write-host "-------------------------------------------------------------------------------"
             Write-host "-------------------------------------------------------------------------------`n"
             switch ($a) {
-                arch {
-                    Write-Host "Select the build target system:"
-                }
-                license2 {
-                    Write-Host "Build FFmpeg with which license?"
-                    Write-Host "If building for yourself, it's OK to choose non-free."
-                    Write-Host "If building to redistribute online, choose GPL or LGPL."
-                    Write-Host "If building to include in a GPLv2.1 binary, choose LGPLv2.1 or GPLv2.1."
-                    Write-Host "If you want to use FFmpeg together with closed source software, choose LGPL"
-                    Write-Host "and follow instructions in https://www.ffmpeg.org/legal.html`n"
-                    Write-Host "OpenSSL and FDK-AAC have licenses incompatible with GPL but compatible"
-                    Write-Host "with LGPL, so they won't be disabled automatically if you choose LGPL.`n"
-                }
-                standalone {
-                    Write-host "Build standalone binaries for libraries included in FFmpeg?"
-                    Write-host "eg. Compile opusenc.exe if --enable-libopus`n"
-                }
-                vpx2 {
-                    Write-Host "Build vpx [VP8/VP9/VP10 encoder]?"
-                    Write-host "Binaries being built depends on 'standalone=y'`n"
-                }
-                aom {
-                    Write-Host "Build aom [Alliance for Open Media codec]?"
-                    Write-host "Binaries being built depends on 'standalone=y'`n"
-                }
-                rav1e {
-                    Write-host "Build rav1e [Alternative, faster AV1 standalone encoder]?`n"
-                }
-                dav1d {
-                    Write-Host "Build dav1d [Alternative, faster AV1 decoder]?`n"
-                    Write-host "Binaries being built depends on 'standalone=y' and are always static.`n"
-                }
-                x2643 {
-                    Write-host "Build x264 [H.264 encoder]?"
-                    Write-host "Binaries being built depends on 'standalone=y' and are always static.`n"
-                }
-                x2652 {
-                    Write-host "Build x265 [H.265 encoder]?"
-                    Write-host "Binaries being built depends on 'standalone=y'`n"
-                }
-                other265 {
-                    Write-Host "Build standalone Kvazaar [H.265 encoder]?`n"
-                }
-                vvc {
-                    Write-Host "Build Fraunhofer VVC [H.265 successor enc/decoder]?`n"
-                }
-                flac {
-                    Write-Host "Build FLAC [Free Lossless Audio Codec]?`n"
-                }
-                fdkaac {
-                    Write-Host "Build FDK-AAC library and binary [AAC-LC/HE/HEv2 codec]?"
-                    Write-host "Note: FFmpeg's aac encoder is no longer experimental and considered equal or"
-                    Write-host "better in quality from 96kbps and above. It still doesn't support AAC-HE/HEv2"
-                    Write-host "so if you need that or want better quality at lower bitrates than 96kbps,"
-                    Write-host "use FDK-AAC.`n"
-                }
-                faac {
-                    Write-Host "Build FAAC library and binary [old, low-quality and nonfree AAC-LC codec]?`n"
-                }
-                mediainfo {
-                    Write-Host "Build mediainfo binaries [Multimedia file information tool]?`n"
-                }
-                soxB {
-                    Write-Host "Build sox binaries [Sound processing tool]?`n"
-                }
-                ffmpegB2 {
-                    Write-host "Build FFmpeg binaries and libraries:"
-                    Write-host "Note: Option 5 differs from 3 in that libass, freetype and fribidi are"
-                    Write-host "compiled shared so they take less space. This one isn't tested a lot and"
-                    Write-host "will fail with fontconfig enabled.`n"
-                }
-                ffmpegUpdate {
-                    Write-host "Always build FFmpeg when libraries have been updated?"
-                    Write-host "FFmpeg is updated a lot so you only need to select this if you"
-                    Write-host "absolutely need updated external libraries in FFmpeg.`n"
-                }
-                ffmpegChoice {
-                    Write-host "Choose ffmpeg and mpv optional libraries?"
-                    Write-host "Avoid the last two unless you're really want useless libraries you'll never use."
-                    Write-host "Just because you can include a shitty codec no one uses doesn't mean you should.`n"
-                    Write-host "If you select yes, we will create files with the default options"
-                    Write-host "we use with FFmpeg and mpv. You can remove any that you don't need or prefix"
-                    Write-host "them with #`n"
-                }
-                mp4box {
-                    Write-Host "Build static mp4box [mp4 muxer/toolbox] binary?`n"
-                }
-                rtmpdump {
-                    Write-Host "Build static rtmpdump binaries [rtmp tools]?`n"
-                }
-                mplayer2 {
-                    Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n"
-                    Write-host "Build static mplayer/mencoder binary?"
-                    Write-host "Don't bother opening issues about this if it breaks, I don't fucking care"
-                    Write-host "about ancient unmaintained shit code. One more issue open about this that"
-                    Write-host "isn't the suite's fault and mplayer goes fucking out.`n"
-                }
-                mpv {
-                    Write-host "Build mpv?"
-                    Write-host "Note: when built with shared-only FFmpeg, mpv is also shared."
-                    Write-host "Note: Requires at least Windows Vista."
-                    Write-host "Warning: the third option isn't completely static. There's no way to include"
-                    Write-host "a library dependant on Python statically. All users of the compiled binary"
-                    Write-host "will need VapourSynth installed using the official package to even open mpv!`n"
-                }
-                bmx {
-                    Write-Host "Build static bmx tools?`n"
-                }
-                curl {
-                    Write-host "Build static curl?"
-                    Write-host "A curl-ca-bundle.crt will be created to be used as trusted certificate store"
-                    Write-host "for all backends except SChannel.`n"
-                }
-                ffmbc {
-                    Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n"
-                    Write-host "Build FFMedia Broadcast binary?"
-                    Write-host "Note: this is a fork of FFmpeg 0.10. As such, it's very likely to fail"
-                    Write-host "to build, work, might burn your computer, kill your children, like mplayer."
-                    Write-host "Only enable it if you absolutely need it. If it breaks, complain first to"
-                    Write-host "the author in #ffmbc in Freenode IRC.`n"
-                }
-                cyanrip2 {
-                    Write-Host "Build cyanrip (CLI CD ripper)?`n"
-                }
-                redshift {
-                    Write-Host "Build redshift [f.lux FOSS clone]?`n"
-                }
-                ripgrep {
-                    Write-Host "Build ripgrep [faster grep in Rust]?`n"
-                }
-                cores {
-                    Write-Host "Number of CPU Cores/Threads for compiling:"
-                    Write-Host "[it is non-recommended to use all cores/threads!]`n"
-                }
-                deleteSource {
-                    Write-Host "Delete versioned source folders after compile is done?"
-                    Write-Host "This will save a bit of space for libraries not compiled from git/hg/svn.`n"
-                }
-                strip {
-                    Write-Host "Strip compiled files binaries?"
-                    Write-Host "Makes binaries smaller at only a small time cost after compiling.`n"
-                }
-                pack {
-                    Write-Host "Pack compiled files?"
-                    Write-Host "Attention: Some security applications may detect packed binaries as malware."
-                    Write-Host "Increases delay on runtime during which files need to be unpacked."
-                    Write-Host "Makes binaries smaller at a big time cost after compiling and on runtime."
-                    Write-Host "If distributing the files, consider packing them with 7-zip instead.`n"
-                }
-                logging {
-                    Write-Host "Write logs of compilation commands?"
-                    Write-Host "Note: Setting this to yes will also hide output from these commands."
-                    Write-Host "On successful compilation, these logs are deleted since they aren't needed.`n"
-                }
-                updateSuite {
-                    Write-Host "Create script to update suite files automatically?"
-                    Write-Host "If you have made changes to the scripts, they will be reset but saved to"
-                    Write-Host "a .diff text file inside $build`n"
-                }
-                Default {
-                }
+                arch {Write-Host "Select the build target system:"}
+                license2 {Write-Host "Build FFmpeg with which license?"}
+                standalone {Write-host "Build standalone binaries for libraries included in FFmpeg?`neg. Compile opusenc.exe if --enable-libopus`n"}
+                vpx2 {Write-Host "Build vpx [VP8/VP9/VP10 encoder]?"}
+                aom {Write-Host "Build aom [Alliance for Open Media codec]?"}
+                rav1e {Write-host "Build rav1e [Alternative, faster AV1 standalone encoder]?`n"}
+                dav1d {Write-Host "Build dav1d [Alternative, faster AV1 decoder]?`n"}
+                x2643 {Write-host "Build x264 [H.264 encoder]?"}
+                x2652 {Write-host "Build x265 [H.265 encoder]?"}
+                other265 {Write-Host "Build standalone Kvazaar [H.265 encoder]?`n"}
+                vvc {Write-Host "Build Fraunhofer VVC [H.265 successor enc/decoder]?`n"}
+                flac {Write-Host "Build FLAC [Free Lossless Audio Codec]?`n"}
+                fdkaac {Write-Host "Build FDK-AAC library and binary [AAC-LC/HE/HEv2 codec]?"}
+                faac {Write-Host "Build FAAC library and binary [old, low-quality and nonfree AAC-LC codec]?`n"}
+                mediainfo {Write-Host "Build mediainfo binaries [Multimedia file information tool]?`n"}
+                soxB {Write-Host "Build sox binaries [Sound processing tool]?`n"}
+                ffmpegB2 {Write-host "Build FFmpeg binaries and libraries:"}
+                ffmpegUpdate {Write-host "Always build FFmpeg when libraries have been updated?"}
+                ffmpegChoice {Write-host "Choose ffmpeg and mpv optional libraries?"}
+                mp4box {Write-Host "Build static mp4box [mp4 muxer/toolbox] binary?`n"}
+                rtmpdump {Write-Host "Build static rtmpdump binaries [rtmp tools]?`n"}
+                mplayer2 {Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n`nBuild static mplayer/mencoder binary?"}
+                mpv {Write-host "Build mpv?"}
+                bmx {Write-Host "Build static bmx tools?`n"}
+                curl {Write-host "Build static curl?"}
+                ffmbc {Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n`nBuild FFMedia Broadcast binary?"}
+                cyanrip2 {Write-Host "Build cyanrip (CLI CD ripper)?`n"}
+                redshift {Write-Host "Build redshift [f.lux FOSS clone]?`n"}
+                ripgrep {Write-Host "Build ripgrep [faster grep in Rust]?`n"}
+                cores {Write-Host "Number of CPU Cores/Threads for compiling:`n[it is non-recommended to use all cores/threads!]`n"}
+                deleteSource {Write-Host "Delete versioned source folders after compile is done?"}
+                strip {Write-Host "Strip compiled files binaries?"}
+                pack {Write-Host "Pack compiled files?"}
+                logging {Write-Host "Write logs of compilation commands?"}
+                updateSuite {Write-Host "Create script to update suite files automatically?"}
+                Default {}
             }
             switch ($a) {
                 arch {
@@ -424,6 +289,83 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                     Write-host "2 = No`n"
                 }
             }
+            switch ($a) {
+                license2 {
+                    Write-Host "If building for yourself, it's OK to choose non-free."
+                    Write-Host "If building to redistribute online, choose GPL or LGPL."
+                    Write-Host "If building to include in a GPLv2.1 binary, choose LGPLv2.1 or GPLv2.1."
+                    Write-Host "If you want to use FFmpeg together with closed source software, choose LGPL"
+                    Write-Host "and follow instructions in https://www.ffmpeg.org/legal.html`n"
+                    Write-Host "OpenSSL and FDK-AAC have licenses incompatible with GPL but compatible"
+                    Write-Host "with LGPL, so they won't be disabled automatically if you choose LGPL.`n"
+                }
+                vpx {Write-host "Binaries being built depends on 'standalone=y'`n"}
+                aom {Write-host "Binaries being built depends on 'standalone=y'`n"}
+                dav1d {Write-host "Binaries being built depends on 'standalone=y' and are always static.`n"}
+                x2643 {Write-host "Binaries being built depends on 'standalone=y' and are always static.`n"}
+                x2652 {Write-host "Binaries being built depends on 'standalone=y'`n"}
+                fdkaac {
+                    Write-host "Note: FFmpeg's aac encoder is no longer experimental and considered equal or"
+                    Write-host "better in quality from 96kbps and above. It still doesn't support AAC-HE/HEv2"
+                    Write-host "so if you need that or want better quality at lower bitrates than 96kbps,"
+                    Write-host "use FDK-AAC.`n"
+                }
+                ffmpegB2 {
+                    Write-host "Note: Option 5 differs from 3 in that libass, freetype and fribidi are"
+                    Write-host "compiled shared so they take less space. This one isn't tested a lot and"
+                    Write-host "will fail with fontconfig enabled.`n"
+                }
+                ffmpegUpdate {
+                    Write-host "FFmpeg is updated a lot so you only need to select this if you"
+                    Write-host "absolutely need updated external libraries in FFmpeg.`n"
+                }
+                ffmpegChoice {
+                    Write-host "Avoid the last two unless you're really want useless libraries you'll never use."
+                    Write-host "Just because you can include a shitty codec no one uses doesn't mean you should.`n"
+                    Write-host "If you select yes, we will create files with the default options"
+                    Write-host "we use with FFmpeg and mpv. You can remove any that you don't need or prefix"
+                    Write-host "them with #`n"
+                }
+                mplayer2 {
+                    Write-host "Don't bother opening issues about this if it breaks, I don't fucking care"
+                    Write-host "about ancient unmaintained shit code. One more issue open about this that"
+                    Write-host "isn't the suite's fault and mplayer goes fucking out.`n"
+                }
+                mpv {
+                    Write-host "Note: when built with shared-only FFmpeg, mpv is also shared."
+                    Write-host "Note: Requires at least Windows Vista."
+                    Write-host "Warning: the third option isn't completely static. There's no way to include"
+                    Write-host "a library dependant on Python statically. All users of the compiled binary"
+                    Write-host "will need VapourSynth installed using the official package to even open mpv!`n"
+                }
+                curl {
+                    Write-host "A curl-ca-bundle.crt will be created to be used as trusted certificate store"
+                    Write-host "for all backends except SChannel.`n"
+                }
+                ffmbc {
+                    Write-host "Note: this is a fork of FFmpeg 0.10. As such, it's very likely to fail"
+                    Write-host "to build, work, might burn your computer, kill your children, like mplayer."
+                    Write-host "Only enable it if you absolutely need it. If it breaks, complain first to"
+                    Write-host "the author in #ffmbc in Freenode IRC.`n"
+                }
+                deleteSource {Write-Host "This will save a bit of space for libraries not compiled from git/hg/svn.`n"}
+                Strip {Write-Host "Makes binaries smaller at only a small time cost after compiling.`n"}
+                pack {
+                    Write-Host "Attention: Some security applications may detect packed binaries as malware."
+                    Write-Host "Increases delay on runtime during which files need to be unpacked."
+                    Write-Host "Makes binaries smaller at a big time cost after compiling and on runtime."
+                    Write-Host "If distributing the files, consider packing them with 7-zip instead.`n"
+                }
+                logging {
+                    Write-Host "Note: Setting this to yes will also hide output from these commands."
+                    Write-Host "On successful compilation, these logs are deleted since they aren't needed.`n"
+                }
+                updateSuite {
+                    Write-Host "If you have made changes to the scripts, they will be reset but saved to"
+                    Write-Host "a .diff text file inside $build`n"
+                }
+                Default {}
+            }
             Write-host "-------------------------------------------------------------------------------"
             Write-host "-------------------------------------------------------------------------------"
             $jsonObjects.$a = [int](
@@ -493,267 +435,17 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                 )
             )
         }
-        if ($writeProperties) {
-            ConvertTo-Json -InputObject $jsonObjects | Out-File $json
-        }
+        if ($writeProperties) {ConvertTo-Json -InputObject $jsonObjects | Out-File $json}
     }
-    else {
-        switch ($a) {
-            arch {
-                $build32 = switch ($jsonObjects.arch) {
-                    1 {
-                        "yes"
-                    }
-                    2 {
-                        "yes"
-                    }
-                    Default {
-                        "no"
-                    }
-                }
-                $build64 = switch ($jsonObjects.arch) {
-                    1 {
-                        "yes"
-                    }
-                    3 {
-                        "yes"
-                    }
-                    Default {
-                        "no"
-                    }
-                }
-            }
-            license2 {
-                $license2 = switch ($jsonObjects.license2) {
-                    1 {
-                        "nonfree"
-                    }
-                    2 {
-                        "gplv3"
-                    }
-                    3 {
-                        "gpl"
-                    }
-                    4 {
-                        "lgplv3"
-                    }
-                    5 {
-                        "lgpl"
-                    }
-                }
-            }
-            x2643 {
-                $x2643 = switch ($jsonObjects.x2643) {
-                    1 {
-                        "yes"
-                    }
-                    2 {
-                        "no"
-                    }
-                    3 {
-                        "high"
-                    }
-                    4 {
-                        "full"
-                    }
-                    5 {
-                        "shared"
-                    }
-                    6 {
-                        "fullv"
-                    }
-                    7 {
-                        "o8"
-                    }
-                }
-            }
-            x2652 {
-                $x2652 = switch ($jsonObjects.x2652) {
-                    1 {
-                        "y"
-                    }
-                    2 {
-                        "n"
-                    }
-                    3 {
-                        "o10"
-                    }
-                    4 {
-                        "o8"
-                    }
-                    5 {
-                        "s"
-                    }
-                    6 {
-                        "d"
-                    }
-                    7 {
-                        "o12"
-                    }
-                }
-            }
-            ffmpegB2 {
-                $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                    1 {
-                        "static"
-                    }
-                    2 {
-                        "no"
-                    }
-                    3 {
-                        "shared"
-                    }
-                    4 {
-                        "both"
-                    }
-                    5 {
-                        "sharedlibs"
-                    }
-                }
-            }
-            ffmpegUpdate {
-                $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
-                    1 {
-                        "y"
-                    }
-                    2 {
-                        "n"
-                    }
-                    3 {
-                        "onlyFFmpeg"
-                    }
-                }
-            }
-            ffmpegChoice {
-                function Write-Option {
-                    param (
-                        [array]$inp
-                    )
-                    foreach ($opt in $inp) {
-                        if (($opt | Out-String).StartsWith("--")) {
-                            Write-Output $opt
-                        }
-                        elseif (($opt | Out-String).StartsWith("#--")) {
-                            Write-Output $opt
-                        }
-                        elseif (($opt | Out-String).StartsWith("#")) {
-                            $opta = ($opt | Out-String -NoNewline).Substring(1)
-                            Write-Output "#--enable-$opta"
-                        }
-                        else {
-                            Write-Output "--enable-$opt"
-                        }
-                    }
-                }
-                $ffmpegoptions = "$build\ffmpeg_options.txt"
-                $mpvoptions = "$build\mpv_options.txt"
-                switch ($jsonObjects.ffmpegChoice) {
-                    1 {
-                        $ffmpegChoice = "y"
-                        if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
-                            Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'" | Out-File $ffmpegoptions
-                            Write-Option $ffmpeg_options_builtin | Out-File -Append $ffmpegoptions
-                            Write-Output "# Common options" | Out-File -Append $ffmpegoptions
-                            Write-Option $ffmpeg_options_basic | Out-File -Append $ffmpegoptions
-                            Write-Output "# Zeranoe" | Out-File -Append $ffmpegoptions
-                            Write-Option $ffmpeg_options_zeranoe | Out-File -Append $ffmpegoptions
-                            Write-Output "# Full" | Out-File -Append $ffmpegoptions
-                            Write-Option $ffmpeg_options_full | Out-File -Append $ffmpegoptions
-                            Write-Host "-------------------------------------------------------------------------------"
-                            Write-Host "File with default FFmpeg options has been created in $ffmpegoptions`n"
-                            Write-Host "Edit it now or leave it unedited to compile according to defaults."
-                            Write-Host "-------------------------------------------------------------------------------"
-                            Pause
-                        }
-                        if (!(Test-Path -PathType Leaf $mpvoptions)) {
-                            Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them." | Out-File $mpvoptions
-                            Write-Option $mpv_options_builtin | Out-File -Append $mpvoptions
-                            Write-Output "`n# Common options or overriden defaults" | Out-File -Append $mpvoptions
-                            Write-Option $mpv_options_basic | Out-File -Append $mpvoptions
-                            Write-Output "`n# Full" | Out-File -Append $mpvoptions
-                            Write-Option $mpv_options_full | Out-File -Append $mpvoptions
-                            Write-Host "-------------------------------------------------------------------------------"
-                            Write-Host "File with default mpv options has been created in $mpvoptions`n"
-                            Write-Host "Edit it now or leave it unedited to compile according to defaults."
-                            Write-Host "-------------------------------------------------------------------------------"
-                            Pause
-                        }
-
-                    }
-                    2 {
-                        $ffmpegChoice = "n"
-                    }
-                    3 {
-                        $ffmpegChoice = "z"
-                    }
-                    4 {
-                        $ffmpegChoice = "f"
-                    }
-                }
-            }
-            mpv {
-                $mpv = switch ($jsonObjects.mpv) {
-                    1 {
-                        "y"
-                    }
-                    2 {
-                        "n"
-                    }
-                    3 {
-                        "z"
-                    }
-                }
-            }
-            curl {
-                $curl = switch ($jsonObjects.curl) {
-                    1 {
-                        "y"
-                    }
-                    2 {
-                        "n"
-                    }
-                    3 {
-                        "schannel"
-                    }
-                    4 {
-                        "gnutls"
-                    }
-                    5 {
-                        "openssl"
-                    }
-                    6 {
-                        "libressl"
-                    }
-                    7 {
-                        "mbedtls"
-                    }
-                }
-            }
-            cyanrip2 {
-                $cyanrip2 = switch ($jsonObjects.cyanrip2) {
-                    1 {
-                        "yes"
-                    }
-                    2 {
-                        "no"
-                    }
-                }
-            }
-            Default {
-                Set-Variable -Name $($a) -Value $(
-                    switch ($jsonObjects.$a) {
-                        1 {
-                            "y"
-                        }
-                        2 {
-                            "n"
-                        }
-                    }
-                )
-            }
-        }
-    }
+}
+foreach ($a in $jsonObjects.psobject.Properties.Name) {
     switch ($a) {
+        msys2Arch {
+            $msys2 = switch ($jsonObjects.msys2Arch) {
+                1 {"msys32"}
+                2 {"msys64"}
+            }
+        }
         arch {
             $build32 = switch ($jsonObjects.arch) {
                 1 {
@@ -880,11 +572,7 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
             }
         }
         ffmpegChoice {
-            # writeOption
-            function Write-Option {
-                param (
-                    [array]$inp
-                )
+            function Write-Option ([array]$inp) {
                 foreach ($opt in $inp) {
                     if (($opt | Out-String).StartsWith("--")) {
                         Write-Output $opt
@@ -1041,10 +729,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Write-Host "-------------------------------------------------------------"
         $progressPreference = 'silentlyContinue'
         if (Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore) {
-            Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+            Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
         }
         elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore) {
-            Invoke-WebRequest -Resume -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+            Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
         }
         else {
             Write-Host "-------------------------------------------------------------`n"
@@ -1074,7 +762,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
-    Invoke-WebRequest -Resume -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
+    Invoke-WebRequest -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
         Invoke-Expression -Command "cmd.exe /c '$build\7za.exe x msys2-base.tar.xz -so | $build\7za.exe x -aoa -si -ttar -o..'"
         Remove-Item $build\msys2-base.tar.xz
@@ -1095,17 +783,17 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
 
 # createFolders
 function Write-BaseFolders ([int]$bit) {
-        Write-Host "-------------------------------------------------------------"
-        Write-Host "creating $bit-bit install folders"
-        Write-Host "-------------------------------------------------------------"
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\etc -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\include -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\share -ErrorAction Ignore | Out-Null
+    Write-Host "-------------------------------------------------------------"
+    Write-Host "creating $bit-bit install folders"
+    Write-Host "-------------------------------------------------------------"
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\bin -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\etc -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\include -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig -ErrorAction Ignore | Out-Null
+    New-Item -ItemType Directory $PSScriptRoot\local$bit\share -ErrorAction Ignore | Out-Null
 }
 if ($build64 -eq "yes") {Write-BaseFolders -bit 64}
 if ($build32 -eq "yes") {Write-BaseFolders -bit 32}
@@ -1189,11 +877,7 @@ if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     } | Receive-Job -Wait
 }
 
-New-Item -ItemType Directory -Force -Path $msys2Path\home\$env:UserName | Out-Null
-if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
-    Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
-}
-
+if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc}
 if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
     $(
         Write-Output "[ui]`n"
@@ -1302,7 +986,7 @@ Write-Host "-------------------------------------------------------------"
 $scripts = "compile", "helper", "update"
 foreach ($s in $scripts) {
     if (!(Test-Path $build\media-suite_$($s).sh)) {
-        Invoke-WebRequest -Resume -MaximumRetryCount 10 -RetryIntervalSec 2 -OutFile $build\media-suite_$($s).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
+        Invoke-WebRequest -MaximumRetryCount 10 -RetryIntervalSec 2 -OutFile $build\media-suite_$($s).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($s).sh"
     }
 }
 if ($jsonObjects.updateSuite -eq 1) {
@@ -1340,7 +1024,7 @@ if (Test-Path $build\update_core) {
     Remove-Item $build\update_core
 }
 
-if ($msys -eq "msys32") {
+if ($msys2 -eq "msys32") {
     Write-Host "-------------------------------------------------------------"
     Write-Host "second rebase $msys2 system"
     Write-Host "-------------------------------------------------------------"
