@@ -1074,20 +1074,16 @@ if (!(Test-Path $msys2Path\usr\bin\wget.exe)) {
     }
 }
 
-
 if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "-------------------------------------------------------------`n"
     Write-Host "- Download and install msys2 basic system`n"
     Write-Host "-------------------------------------------------------------"
     Invoke-WebRequest -Resume -MaximumRetryCount 5 -RetryIntervalSec 5 -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
-        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
+        Invoke-Expression -Command "cmd.exe /c '$build\7za.exe x msys2-base.tar.xz -so | $build\7za.exe x -aoa -si -ttar -o..'"
         Remove-Item $build\msys2-base.tar.xz
-        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
-        Remove-Item $build\msys2-base.tar
-
     }
-    if (-Not (Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
+    if (!(Test-Path $msys2Path\usr\bin\msys-2.0.dll)) {
         Write-Host "-------------------------------------------------------------`n"
         Write-Host "- Download msys2 basic system failed,"
         Write-Host "- please download it manually from:"
@@ -1202,7 +1198,8 @@ if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern 
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
-        Invoke-Expression "$bash -lc 'echo -e -------------------------------------------------------------\nForcefully signing abrepo key\n-------------------------------------------------------------; pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
+        Write-Host "-------------------------------------------------------------`nForcefully signing abrepo key`n-------------------------------------------------------------"
+        Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
     } | Receive-Job -Wait
 }
 
