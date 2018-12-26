@@ -441,9 +441,9 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
     switch ($a) {
         msys2Arch {
-            $msys2 = switch ($jsonObjects.msys2Arch) {
-                1 {"msys32"}
-                2 {"msys64"}
+            $msys2 = switch ([System.IntPtr]::Size) {
+                4 {"msys32"}
+                default {"msys64"}
             }
         }
         arch {
@@ -708,7 +708,7 @@ Write-Host "Get-Job | Remove-Job -Force"
 Write-Host "-------------------------------------------------------------"
 Start-Sleep -Seconds 2
 # Temporarily store the Path
-if (!(Test-Path Global:TempPath)) {$Global:TempPath = $env:Path}
+$Global:TempPath = $env:Path
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
@@ -920,8 +920,6 @@ if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
 foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
-Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
-foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
 
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
@@ -931,6 +929,9 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Write-Host "-------------------------------------------------------------"
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
+        Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
+        foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
+        
         Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
         Remove-Item $msys2Path\etc\pac-base.temp
     } | Receive-Job -Wait
