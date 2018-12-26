@@ -45,8 +45,7 @@ if ($PSScriptRoot -match " ") {
     Write-Host "Correct:   C:\build_suite\`n"
     Pause
     exit
-}
-elseif ($PSScriptRoot.Length -gt 60) {
+} elseif ($PSScriptRoot.Length -gt 60) {
     Write-Host "----------------------------------------------------------------------"
     Write-Host "The total filepath to the suite seems too large (larger than 60 characters):`n"
     Write-Host "$PSScriptRoot`n"
@@ -58,8 +57,7 @@ elseif ($PSScriptRoot.Length -gt 60) {
     Write-Host "Prefer: C:\ab-suite`n"
     pause
     exit
-}
-else {
+} else {
     Set-Location $PSScriptRoot
 }
 
@@ -129,13 +127,11 @@ if (Test-Path -Path $json) {
     foreach ($a in $jsonObjects.psobject.Properties.Name) {
         if ($jsonProperties.$a -ne 0) {
             $jsonObjects.$a = $jsonProperties.$a
-        }
-        else {
+        } else {
             $writeProperties = $true
         }
     }
-}
-else {
+} else {
     $jsonObjects | ConvertTo-Json | Out-File $json
     $writeProperties = $true
 }
@@ -576,15 +572,12 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                 foreach ($opt in $inp) {
                     if (($opt | Out-String).StartsWith("--")) {
                         Write-Output $opt
-                    }
-                    elseif (($opt | Out-String).StartsWith("#--")) {
+                    } elseif (($opt | Out-String).StartsWith("#--")) {
                         Write-Output $opt
-                    }
-                    elseif (($opt | Out-String).StartsWith("#")) {
+                    } elseif (($opt | Out-String).StartsWith("#")) {
                         $opta = ($opt | Out-String -NoNewline).Substring(1)
                         Write-Output "#--enable-$opta"
-                    }
-                    else {
+                    } else {
                         Write-Output "--enable-$opt"
                     }
                 }
@@ -730,11 +723,9 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         $progressPreference = 'silentlyContinue'
         if (Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore) {
             Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-        }
-        elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore) {
+        } elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore) {
             Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
-        }
-        else {
+        } else {
             Write-Host "-------------------------------------------------------------`n"
             Write-Host "Script to download necessary components failed.`n"
             Write-Host "Download and extract this manually to inside $($build):"
@@ -747,8 +738,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         $stream = ([IO.StreamReader]$((Resolve-Path $build\wget-pack.exe).ProviderPath)).BaseStream
         if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
             Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-        }
-        else {
+        } else {
             $stream.Close()
             Remove-Item $build\wget-pack.exe
             Write-Host "-------------------------------------------------------------`n"
@@ -931,7 +921,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
         Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
         foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
-        
+
         Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
         Remove-Item $msys2Path\etc\pac-base.temp
     } | Receive-Job -Wait
@@ -974,8 +964,7 @@ function Get-Compiler ([int]$bit) {
         Write-Host "-------------------------------------------------------------"
         if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
             Get-Compiler -bit $bit
-        }
-        else {
+        } else {
             exit
         }
     }
