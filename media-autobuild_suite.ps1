@@ -124,37 +124,37 @@ $jsonObjects = [PSCustomObject]@{
 }
 
 function Write-Questions ($Question) {
-    Write-Host "$("-"*80)`n$("-"*80)"
+    Write-Host "$("-"*80)`n$("-"*80)`n"
     switch ($Question) {
         arch {Write-Host "Select the build target system:"}
         license2 {Write-Host "Build FFmpeg with which license?"}
-        standalone {Write-host "Build standalone binaries for libraries included in FFmpeg?`neg. Compile opusenc.exe if --enable-libopus`n"}
+        standalone {Write-host "Build standalone binaries for libraries included in FFmpeg?`neg. Compile opusenc.exe if --enable-libopus"}
         vpx2 {Write-Host "Build vpx [VP8/VP9/VP10 encoder]?"}
         aom {Write-Host "Build aom [Alliance for Open Media codec]?"}
-        rav1e {Write-host "Build rav1e [Alternative, faster AV1 standalone encoder]?`n"}
-        dav1d {Write-Host "Build dav1d [Alternative, faster AV1 decoder]?`n"}
+        rav1e {Write-host "Build rav1e [Alternative, faster AV1 standalone encoder]?"}
+        dav1d {Write-Host "Build dav1d [Alternative, faster AV1 decoder]?"}
         x2643 {Write-host "Build x264 [H.264 encoder]?"}
         x2652 {Write-host "Build x265 [H.265 encoder]?"}
-        other265 {Write-Host "Build standalone Kvazaar [H.265 encoder]?`n"}
-        vvc {Write-Host "Build Fraunhofer VVC [H.265 successor enc/decoder]?`n"}
-        flac {Write-Host "Build FLAC [Free Lossless Audio Codec]?`n"}
+        other265 {Write-Host "Build standalone Kvazaar [H.265 encoder]?"}
+        vvc {Write-Host "Build Fraunhofer VVC [H.265 successor enc/decoder]?"}
+        flac {Write-Host "Build FLAC [Free Lossless Audio Codec]?"}
         fdkaac {Write-Host "Build FDK-AAC library and binary [AAC-LC/HE/HEv2 codec]?"}
-        faac {Write-Host "Build FAAC library and binary [old, low-quality and nonfree AAC-LC codec]?`n"}
-        mediainfo {Write-Host "Build mediainfo binaries [Multimedia file information tool]?`n"}
-        soxB {Write-Host "Build sox binaries [Sound processing tool]?`n"}
+        faac {Write-Host "Build FAAC library and binary [old, low-quality and nonfree AAC-LC codec]?"}
+        mediainfo {Write-Host "Build mediainfo binaries [Multimedia file information tool]?"}
+        soxB {Write-Host "Build sox binaries [Sound processing tool]?"}
         ffmpegB2 {Write-host "Build FFmpeg binaries and libraries:"}
         ffmpegUpdate {Write-host "Always build FFmpeg when libraries have been updated?"}
         ffmpegChoice {Write-host "Choose ffmpeg and mpv optional libraries?"}
-        mp4box {Write-Host "Build static mp4box [mp4 muxer/toolbox] binary?`n"}
-        rtmpdump {Write-Host "Build static rtmpdump binaries [rtmp tools]?`n"}
+        mp4box {Write-Host "Build static mp4box [mp4 muxer/toolbox] binary?"}
+        rtmpdump {Write-Host "Build static rtmpdump binaries [rtmp tools]?"}
         mplayer2 {Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n`nBuild static mplayer/mencoder binary?"}
         mpv {Write-host "Build mpv?"}
-        bmx {Write-Host "Build static bmx tools?`n"}
+        bmx {Write-Host "Build static bmx tools?"}
         curl {Write-host "Build static curl?"}
         ffmbc {Write-Host "######### UNSUPPORTED, IF IT BREAKS, IT BREAKS ################################`n`nBuild FFMedia Broadcast binary?"}
-        cyanrip2 {Write-Host "Build cyanrip (CLI CD ripper)?`n"}
-        redshift {Write-Host "Build redshift [f.lux FOSS clone]?`n"}
-        ripgrep {Write-Host "Build ripgrep [faster grep in Rust]?`n"}
+        cyanrip2 {Write-Host "Build cyanrip (CLI CD ripper)?"}
+        redshift {Write-Host "Build redshift [f.lux FOSS clone]?"}
+        ripgrep {Write-Host "Build ripgrep [faster grep in Rust]?"}
         jq {Write-Host "Build jq (CLI JSON processor)?"}
         cores {Write-Host "Number of CPU Cores/Threads for compiling:`n[it is non-recommended to use all cores/threads!]`n"}
         deleteSource {Write-Host "Delete versioned source folders after compile is done?"}
