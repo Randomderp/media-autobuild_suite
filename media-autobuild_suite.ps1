@@ -739,26 +739,26 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         param($bash, $build)
         Write-Host "$("-"*60)`n- make a first run`n$("-"*60)"
         Remove-Item -Force $build\firstrun.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc exit" | Tee-Object $build\firstrun.log
+        Invoke-Expression "$bash -lc exit" -ErrorAction SilentlyContinue | Tee-Object $build\firstrun.log
     } | Receive-Job -Wait
     Write-Fstab
     Start-Job -Name "firstUpdate" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`nFirst update`n$("-"*60)"
         Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" | Tee-Object $build\firstUpdate.log
+        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" -ErrorAction SilentlyContinue | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`ncritical updates`n$("-"*60)"
         Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" | Tee-Object $build\criticalUpdate.log
+        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" -ErrorAction SilentlyContinue | Tee-Object $build\criticalUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "secondUpdate" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`nsecond update`n$("-"*60)"
         Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" | Tee-Object $build\secondUpdate.log
+        Invoke-Expression "$bash -lc 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" -ErrorAction SilentlyContinue | Tee-Object $build\secondUpdate.log
     } | Receive-Job -Wait
     # equivalent to setlink.vbs
     $wshShell = New-Object -ComObject WScript.Shell
@@ -774,11 +774,11 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
 if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot))) {
     Write-Fstab
 }
-if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
+if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" -ErrorAction SilentlyContinue)) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
         Write-Host "$("-"*60)`nForcefully signing abrepo key`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
+        Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'" -ErrorAction SilentlyContinue
     } | Receive-Job -Wait
 }
 
@@ -834,7 +834,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
         foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
 
-        Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\pacman.log
+        Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" -ErrorAction SilentlyContinue | Tee-Object $build\pacman.log
         Remove-Item $msys2Path\etc\pac-base.temp
     } | Receive-Job -Wait
 }
@@ -842,7 +842,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
 Start-Job -Name "cert" -ArgumentList $bash, $build -ScriptBlock {
     param($bash, $build)
     Remove-Item -Force $build\cert.log 2>&1 | Out-Null
-    Invoke-Expression "$bash -lc update-ca-trust" | Tee-Object $build\cert.log
+    Invoke-Expression "$bash -lc update-ca-trust" -ErrorAction SilentlyContinue | Tee-Object $build\cert.log
 } | Receive-Job -Wait
 
 if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {
@@ -866,7 +866,7 @@ function Get-Compiler ([int]$bit) {
         Write-Host "$("-"*60)"
         Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
         Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
-        Invoke-Expression "$bash -lc 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" | Tee-Object $build\mingw$($bit).log
+        Invoke-Expression "$bash -lc 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" -ErrorAction SilentlyContinue | Tee-Object $build\mingw$($bit).log
         Remove-Item $msys2Path\etc\pac-mingw.temp
     } | Receive-Job -Wait
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
@@ -911,11 +911,11 @@ if ($jsonObjects.updateSuite -eq 1) {
 Remove-Item -Force $build\update.log 2>&1 | Out-Null
 Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash, $build -ScriptBlock {
     param($bash, $build)
-    Invoke-Expression "$bash -lc 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
+    Invoke-Expression "$bash -lc 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'" -ErrorAction SilentlyContinue
 } | Receive-Job -Wait
 Start-Job -Name "update" -ArgumentList $bash, $build, $build32, $build64 -ScriptBlock {
     param($bash, $build, $build32, $build64)
-    Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'" | Tee-Object $build\update.log
+    Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'" -ErrorAction SilentlyContinue | Tee-Object $build\update.log
 } | Receive-Job -Wait
 if (Test-Path $build\update_core) {
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
@@ -924,7 +924,7 @@ if (Test-Path $build\update_core) {
         Write-Host "critical updates"
         Write-Host "$("-"*60)"
         Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
-        Invoke-Expression  "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
+        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'" -ErrorAction SilentlyContinue
     } | Receive-Job -Wait | Tee-Object $build\update_core.log
     Remove-Item $build\update_core
 }
@@ -1044,7 +1044,7 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
     )
     Remove-Item -Force $build\compile.log 2>&1 | Out-Null
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Invoke-Expression  "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2  --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq" | Tee-Object $build\compile.log
+    Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq" -ErrorAction SilentlyContinue | Tee-Object $build\compile.log
 }
 while (Get-Job -State Running) {Receive-Job -Name "Media-Autobuild_Suite Compile" | Out-Host}
 $env:Path = $Global:TempPath
