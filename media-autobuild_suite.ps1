@@ -334,7 +334,7 @@ function Write-Questions ($Question) {
             }
         )
     )
-    if ($writeProperties) {ConvertTo-Json -InputObject $jsonObjects | Out-File $json}
+    ConvertTo-Json -InputObject $jsonObjects | Out-File $json
 }
 
 if (Test-Path -Path $json) {
@@ -342,13 +342,10 @@ if (Test-Path -Path $json) {
     foreach ($a in $jsonProperties.psobject.Properties.Name) {
         if ($jsonProperties.$a -ne 0) {
             $jsonObjects.$a = $jsonProperties.$a
-        } else {
-            $writeProperties = $true
         }
     }
 } else {
     $jsonObjects | ConvertTo-Json | Out-File $json
-    $writeProperties = $true
 }
 
 # sytemVars
