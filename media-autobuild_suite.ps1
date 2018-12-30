@@ -683,8 +683,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
     Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
-        Invoke-Expression -Command "cmd.exe /c '$build\7za.exe x msys2-base.tar.xz -so | $build\7za.exe x -aoa -si -ttar -o..'"
+        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
         Remove-Item $build\msys2-base.tar.xz
+        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
+        Remove-Item $build\msys2-base.tar
     }
     if (!(Test-Path $msys2Path\usr\bin\msys-2.0.dll)) {
         Write-Host "$("-"*60)`n"
