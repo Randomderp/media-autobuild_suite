@@ -514,17 +514,16 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
     }
 }
 # EOQuestions
-
+Write-Host "$("-"*60)"
 if ($PSVersionTable.PSVersion.Major -ne 3) {
-    Write-Host "$("-"*60)"
     Write-Host "If you want to reuse this console do"
     Write-Host "`$env:Path = `$Global:TempPath"
     Write-Host "else you won't have your original path in this console until you close and reopen."
-    Write-Host "If you use control+C at any time durring the script, make sure to run"
-    Write-Host "Get-Job | Remove-Job -Force"
-    Write-Host "$("-"*60)"
     Start-Sleep -Seconds 2
 }
+Write-Host "If you use control+C at any time durring the script, make sure to run"
+Write-Host "Get-Job | Remove-Job -Force"
+Write-Host "$("-"*60)"
 # Temporarily store the Path
 $Global:TempPath = $env:Path
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
@@ -829,6 +828,8 @@ if ($build64 -eq "yes") {Write-Profile -bit 64}
 if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\profile.pacnew $msys2Path\etc\profile}
 if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {
     Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-File -NoNewline -Force $msys2Path\etc\profile.d\Zab-suite.sh
+    [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\profile.d\Zab-suite.sh), $(Get-Content $msys2Path\etc\profile.d\Zab-suite.sh), $(New-Object System.Text.UTF8Encoding $False))
+    (Get-Content $msys2Path\etc\profile.d\Zab-suite.sh -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\profile.d\Zab-suite.sh -NoNewline -Force
 }
 
 # compileLocals
