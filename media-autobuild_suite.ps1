@@ -62,9 +62,9 @@ if ($PSScriptRoot -match " ") {
 }
 
 # Set Build path
-$build = "$PSScriptRoot\build"
-New-Item -ItemType Directory -Force -Path $build | Out-Null
-$json = "$build\media-autobuild_suite.json"
+New-Item -ItemType Directory -Force -Path $PSScriptRoot\build -ErrorAction Ignore | Out-Null
+$build = Resolve-Path $PSScriptRoot\build
+$json = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("$build\media-autobuild_suite.json")
 
 # Set package variables
 $msyspackages = "asciidoc", "autoconf", "autoconf-archive", "autogen", "automake-wrapper", "bison", "diffstat", "dos2unix", "doxygen", "git", "gperf", "gyp-git", "help2man", "intltool", "itstool", "libtool", "make", "man-db", "mercurial", "mintty", "p7zip", "patch", "python", "ruby", "subversion", "texinfo", "unzip", "wget", "winpty", "xmlto", "zip"
@@ -78,12 +78,8 @@ $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
 $jsonObjects = [PSCustomObject]@{
     msys2Arch    = switch ([System.IntPtr]::Size) {
-        4 {
-            1
-        }
-        default {
-            2
-        }
+        4 {1}
+        default {2}
     }
     arch         = 0
     license2     = 0
@@ -371,127 +367,61 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
         }
         arch {
             $build32 = switch ($jsonObjects.arch) {
-                1 {
-                    "yes"
-                }
-                2 {
-                    "yes"
-                }
-                Default {
-                    "no"
-                }
+                1 {"yes"}
+                2 {"yes"}
+                Default {"no"}
             }
             $build64 = switch ($jsonObjects.arch) {
-                1 {
-                    "yes"
-                }
-                3 {
-                    "yes"
-                }
-                Default {
-                    "no"
-                }
+                1 {"yes"}
+                3 {"yes"}
+                Default {"no"}
             }
         }
         license2 {
             $license2 = switch ($jsonObjects.license2) {
-                1 {
-                    "nonfree"
-                }
-                2 {
-                    "gplv3"
-                }
-                3 {
-                    "gpl"
-                }
-                4 {
-                    "lgplv3"
-                }
-                5 {
-                    "lgpl"
-                }
+                1 {"nonfree"}
+                2 {"gplv3"}
+                3 {"gpl"}
+                4 {"lgplv3"}
+                5 {"lgpl"}
             }
         }
         x2643 {
             $x2643 = switch ($jsonObjects.x2643) {
-                1 {
-                    "yes"
-                }
-                2 {
-                    "no"
-                }
-                3 {
-                    "high"
-                }
-                4 {
-                    "full"
-                }
-                5 {
-                    "shared"
-                }
-                6 {
-                    "fullv"
-                }
-                7 {
-                    "o8"
-                }
+                1 {"yes"}
+                2 {"no"}
+                3 {"high"}
+                4 {"full"}
+                5 {"shared"}
+                6 {"fullv"}
+                7 {"o8"}
             }
         }
         x2652 {
             $x2652 = switch ($jsonObjects.x2652) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "o10"
-                }
-                4 {
-                    "o8"
-                }
-                5 {
-                    "s"
-                }
-                6 {
-                    "d"
-                }
-                7 {
-                    "o12"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"o10"}
+                4 {"o8"}
+                5 {"s"}
+                6 {"d"}
+                7 {"o12"}
             }
         }
         ffmpegB2 {
             $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                1 {
-                    "static"
-                }
-                2 {
-                    "no"
-                }
-                3 {
-                    "shared"
-                }
-                4 {
-                    "both"
-                }
-                5 {
-                    "sharedlibs"
-                }
+                1 {"static"}
+                2 {"no"}
+                3 {"shared"}
+                4 {"both"}
+                5 {"sharedlibs"}
             }
         }
         ffmpegUpdate {
             $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "onlyFFmpeg"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"onlyFFmpeg"}
             }
         }
         ffmpegChoice {
@@ -544,74 +474,40 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                     }
 
                 }
-                2 {
-                    $ffmpegChoice = "n"
-                }
-                3 {
-                    $ffmpegChoice = "z"
-                }
-                4 {
-                    $ffmpegChoice = "f"
-                }
+                2 {$ffmpegChoice = "n"}
+                3 {$ffmpegChoice = "z"}
+                4 {$ffmpegChoice = "f"}
             }
         }
         mpv {
             $mpv = switch ($jsonObjects.mpv) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "z"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"z"}
             }
         }
         curl {
             $curl = switch ($jsonObjects.curl) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "schannel"
-                }
-                4 {
-                    "gnutls"
-                }
-                5 {
-                    "openssl"
-                }
-                6 {
-                    "libressl"
-                }
-                7 {
-                    "mbedtls"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"schannel"}
+                4 {"gnutls"}
+                5 {"openssl"}
+                6 {"libressl"}
+                7 {"mbedtls"}
             }
         }
         cyanrip2 {
             $cyanrip2 = switch ($jsonObjects.cyanrip2) {
-                1 {
-                    "yes"
-                }
-                2 {
-                    "no"
-                }
+                1 {"yes"}
+                2 {"no"}
             }
         }
         Default {
             Set-Variable -Name $($a) -Value $(
                 switch ($jsonObjects.$a) {
-                    1 {
-                        "y"
-                    }
-                    2 {
-                        "n"
-                    }
+                    1 {"y"}
+                    2 {"n"}
                 }
             )
         }
@@ -619,26 +515,24 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
 }
 # EOQuestions
 
-Write-Host "$("-"*60)"
-Write-Host "If you want to reuse this console do"
-Write-Host "`$env:Path = `$Global:TempPath"
-Write-Host "else you won't have your original path in this console until you close and reopen."
-Write-Host "If you use control+C at any time durring the script, make sure to run"
-Write-Host "Get-Job | Remove-Job -Force"
-Write-Host "$("-"*60)"
-Start-Sleep -Seconds 2
+if ($PSVersionTable.PSVersion.Major -ne 3) {
+    Write-Host "$("-"*60)"
+    Write-Host "If you want to reuse this console do"
+    Write-Host "`$env:Path = `$Global:TempPath"
+    Write-Host "else you won't have your original path in this console until you close and reopen."
+    Write-Host "If you use control+C at any time durring the script, make sure to run"
+    Write-Host "Get-Job | Remove-Job -Force"
+    Write-Host "$("-"*60)"
+    Start-Sleep -Seconds 2
+}
 # Temporarily store the Path
 $Global:TempPath = $env:Path
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
 $msysprefix = switch ($msys2) {
-    msys32 {
-        "i686"
-    }
-    Default {
-        "x86_64"
-    }
+    msys32 {"i686"}
+    Default {"x86_64"}
 }
 
 if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
@@ -678,6 +572,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\wget-pack.exe
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
+    Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
     Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
     if (Test-Path $build\msys2-base.tar.xz) {
         Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
@@ -685,7 +580,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
         Remove-Item $build\msys2-base.tar
     }
-    if (!(Test-Path $msys2Path\usr\bin\msys-2.0.dll)) {
+    if (!(Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "$("-"*60)`n"
         Write-Host "- Download msys2 basic system failed,"
         Write-Host "- please download it manually from:"
@@ -713,7 +608,7 @@ function Write-BaseFolders ([int]$bit) {
 }
 if ($build64 -eq "yes") {Write-BaseFolders -bit 64}
 if ($build32 -eq "yes") {Write-BaseFolders -bit 32}
-$fstab = "$msys2Path\etc\fstab"
+$fstab = Resolve-Path $msys2Path\etc\fstab
 # checkFstab
 function Write-Fstab {
     Write-Host "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
@@ -737,27 +632,27 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Start-Job -Name "firstRun" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`n- make a first run`n$("-"*60)"
-        Remove-Item -Force $build\firstrun.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc exit" -ErrorAction Ignore | Tee-Object $build\firstrun.log
+        Remove-Item -Force $build\firstrun.log -ErrorAction Ignore
+        Invoke-Expression "$bash -lc exit" | Tee-Object $build\firstrun.log
     } | Receive-Job -Wait
     Write-Fstab
     Start-Job -Name "firstUpdate" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`nFirst update`n$("-"*60)"
-        Remove-Item -Force $build\firstUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'" -ErrorAction Ignore | Tee-Object $build\firstUpdate.log
+        Remove-Item -Force $build\firstUpdate.log -ErrorAction Ignore
+        Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object $build\firstUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`ncritical updates`n$("-"*60)"
-        Remove-Item -Force $build\criticalUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" -ErrorAction Ignore | Tee-Object $build\criticalUpdate.log
+        Remove-Item -Force $build\criticalUpdate.log -ErrorAction Ignore
+        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"  | Tee-Object $build\criticalUpdate.log
     } | Receive-Job -Wait
     Start-Job -Name "secondUpdate" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
         Write-Host "$("-"*60)`nsecond update`n$("-"*60)"
-        Remove-Item -Force $build\secondUpdate.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'" -ErrorAction Ignore | Tee-Object $build\secondUpdate.log
+        Remove-Item -Force $build\secondUpdate.log -ErrorAction Ignore
+        Invoke-Expression "$bash -lc 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"  | Tee-Object $build\secondUpdate.log
     } | Receive-Job -Wait
     # equivalent to setlink.vbs
     $wshShell = New-Object -ComObject WScript.Shell
@@ -773,11 +668,11 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
 if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot))) {
     Write-Fstab
 }
-if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" -ErrorAction Ignore)) {
+if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
     Start-Job -Name "forceSign" -ArgumentList $bash -ScriptBlock {
         param($bash)
         Write-Host "$("-"*60)`nForcefully signing abrepo key`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'" -ErrorAction Ignore
+        Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
     } | Receive-Job -Wait
 }
 
@@ -802,7 +697,7 @@ if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
     ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.hgrc
 }
 
-if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
+if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig)) {
     $(
         Write-Output "[user]`n"
         Write-Output "name = $env:UserName`n"
@@ -819,36 +714,36 @@ if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig -ErrorAction Ignore)) {
     ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.gitconfig
 }
 
-Remove-Item $msys2Path\etc\pac-base.pk -Force 2>&1 | Out-Null
+Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
 foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
 
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
-        Write-Host "$("-"*60)"
-        Write-Host "install msys2 base system"
-        Write-Host "$("-"*60)"
+        Write-Host "$("-"*60)`ninstall msys2 base system`n$("-"*60)"
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
-        Remove-Item -Force $build\pacman.log 2>&1 | Out-Null
-        Remove-Item $msys2Path\etc\pac-base.temp -Force 2>&1 | Out-Null
+        Remove-Item -Force $build\pacman.log -ErrorAction Ignore
+        Remove-Item $msys2Path\etc\pac-base.temp -Force -ErrorAction Ignore
         foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
+        [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\pac-base.temp), $(Get-Content $msys2Path\etc\pac-base.temp), $(New-Object System.Text.UTF8Encoding $False))
+        (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\pac-base.temp -NoNewline -Force
 
-        Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" -ErrorAction Ignore | Tee-Object $build\pacman.log
-        Remove-Item $msys2Path\etc\pac-base.temp
+        Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object $build\pacman.log
+        Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
     } | Receive-Job -Wait
 }
 
 Start-Job -Name "cert" -ArgumentList $bash, $build -ScriptBlock {
     param($bash, $build)
-    Remove-Item -Force $build\cert.log 2>&1 | Out-Null
-    Invoke-Expression "$bash -lc update-ca-trust" -ErrorAction Ignore | Tee-Object $build\cert.log
+    Remove-Item -Force $build\cert.log -ErrorAction Ignore
+    Invoke-Expression "$bash -lc update-ca-trust"  | Tee-Object $build\cert.log
 } | Receive-Job -Wait
 
 if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {
     Write-Output "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%`r`n" | Out-File -Force -NoNewline $msys2Path\usr\bin\hg.bat
 }
 
-Remove-Item -Force $msys2Path\etc\pac-mingw.pk 2>&1 | Out-Null
+Remove-Item -Force $msys2Path\etc\pac-mingw.pk -ErrorAction Ignore
 foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk}
 
 function Get-Compiler ([int]$bit) {
@@ -863,10 +758,10 @@ function Get-Compiler ([int]$bit) {
         Write-Host "$("-"*60)"
         Write-Host "install $bit bit compiler"
         Write-Host "$("-"*60)"
-        Remove-Item -Force $build\mingw$($bit).log 2>&1 | Out-Null
+        Remove-Item -Force $build\mingw$($bit).log -ErrorAction Ignore
         Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
-        Invoke-Expression "$bash -lc 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'" -ErrorAction Ignore | Tee-Object $build\mingw$($bit).log
-        Remove-Item $msys2Path\etc\pac-mingw.temp
+        Invoke-Expression "$bash -lc 'echo install $bit bit compiler; cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object $build\mingw$($bit).log
+        Remove-Item $msys2Path\etc\pac-mingw.temp -ErrorAction Ignore
     } | Receive-Job -Wait
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
         Write-Host "$("-"*60)"
@@ -907,24 +802,22 @@ if ($jsonObjects.updateSuite -eq 1) {
 }
 
 # update
-Remove-Item -Force $build\update.log 2>&1 | Out-Null
+Remove-Item -Force $build\update.log -ErrorAction Ignore
 Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash, $build -ScriptBlock {
     param($bash, $build)
-    Invoke-Expression "$bash -lc 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'" -ErrorAction Ignore
+    Invoke-Expression "$bash -lc 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
 } | Receive-Job -Wait
 Start-Job -Name "update" -ArgumentList $bash, $build, $build32, $build64 -ScriptBlock {
     param($bash, $build, $build32, $build64)
-    Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'" -ErrorAction Ignore | Tee-Object $build\update.log
+    Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'"  | Tee-Object $build\update.log
 } | Receive-Job -Wait
 if (Test-Path $build\update_core) {
     Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
         param($bash, $build)
-        Write-Host "$("-"*60)"
-        Write-Host "critical updates"
-        Write-Host "$("-"*60)"
-        Remove-Item -Force $build\update_core.log 2>&1 | Out-Null
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'" -ErrorAction Ignore
-    } | Receive-Job -Wait | Tee-Object $build\update_core.log
+        Write-Host "$("-"*60)`ncritical updates`n$("-"*60)"
+        Remove-Item -Force $build\update_core.log -ErrorAction Ignore
+        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"  | Tee-Object $build\update_core.log
+    } | Receive-Job -Wait
     Remove-Item $build\update_core
 }
 
@@ -1041,9 +934,9 @@ Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYST
         $dav1d,
         $vvc
     )
-    Remove-Item -Force $build\compile.log 2>&1 | Out-Null
+    Remove-Item -Force $build\compile.log -ErrorAction Ignore
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq" -ErrorAction Ignore | Tee-Object $build\compile.log
+    Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq"  | Tee-Object $build\compile.log
 }
 while (Get-Job -State Running) {Receive-Job -Name "Media-Autobuild_Suite Compile" | Out-Host}
 $env:Path = $Global:TempPath
