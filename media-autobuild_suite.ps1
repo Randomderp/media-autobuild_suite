@@ -718,8 +718,8 @@ Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
 foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
 
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
-    Start-Job -Name "installMsys2" -ArgumentList $bash, $build -ScriptBlock {
-        param($bash, $build)
+    Start-Job -Name "installMsys2" -ArgumentList $bash, $build, $msyspackages -ScriptBlock {
+        param($bash, $build, $msyspackages)
         Write-Host "$("-"*60)`ninstall msys2 base system`n$("-"*60)"
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         Remove-Item -Force $build\pacman.log -ErrorAction Ignore
@@ -727,7 +727,6 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
         [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\pac-base.temp), $(Get-Content $msys2Path\etc\pac-base.temp), $(New-Object System.Text.UTF8Encoding $False))
         (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\pac-base.temp -NoNewline -Force
-
         Invoke-Expression "$bash -lc 'echo install base system; cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object $build\pacman.log
         Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
     } | Receive-Job -Wait
