@@ -774,10 +774,7 @@ if ($msys2 -eq "msys32") {
     Start-Process -NoNewWindow -Wait -FilePath $msys2Path\autorebase.bat
 }
 # Write config profiles
-function Write-Profile {
-    param (
-        [int]$bit
-    )
+function Write-Profile ([int]$bit) {
     $(
         Write-Output "MSYSTEM=MINGW$bit`n"
         Write-Output "source /etc/msystem`n`n"
@@ -819,7 +816,9 @@ function Write-Profile {
         Write-Output "stty susp undef`n"
         Write-Output "cd /trunk`n"
         Write-Output "test -f `"`$LOCALDESTDIR/etc/custom_profile`" && source `"`$LOCALDESTDIR/etc/custom_profile`"`n"
-    ) | Out-File -NoNewline -Force $PSScriptRoot\local$($bit)\etc\profile2.local
+    ) | Out-File -NoNewline -Encoding utf8 -Force $PSScriptRoot\local$($bit)\etc\profile2.local
+    [System.IO.File]::WriteAllLines($(Resolve-Path $PSScriptRoot\local$($bit)\etc\profile2.local), $(Get-Content $PSScriptRoot\local$($bit)\etc\profile2.local), $(New-Object System.Text.UTF8Encoding $False))
+    (Get-Content $PSScriptRoot\local$($bit)\etc\profile2.local -Raw).Replace("`r`n", "`n") | Set-Content $PSScriptRoot\local$($bit)\etc\profile2.local -NoNewline -Force
 }
 if ($build32 -eq "yes") {Write-Profile -bit 32}
 if ($build64 -eq "yes") {Write-Profile -bit 64}
