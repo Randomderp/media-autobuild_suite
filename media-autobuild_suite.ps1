@@ -829,6 +829,7 @@ if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\pr
 if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {
     Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-File -NoNewline -Force -Encoding utf8 $msys2Path\etc\profile.d\Zab-suite.sh
     [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\profile.d\Zab-suite.sh), $(Get-Content $msys2Path\etc\profile.d\Zab-suite.sh), $(New-Object System.Text.UTF8Encoding $False))
+    (Get-Content $msys2Path\etc\profile.d\Zab-suite.sh -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\profile.d\Zab-suite.sh -NoNewline -Force
 }
 
 # compileLocals
