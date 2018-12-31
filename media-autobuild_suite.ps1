@@ -740,9 +740,7 @@ if (($build32 -eq "yes") -and !(Test-Path $msys2Path\mingw32\bin\gcc.exe)) {Get-
 if (($build64 -eq "yes") -and !(Test-Path $msys2Path\mingw64\bin\gcc.exe)) {Get-Compiler -bit 64}
 
 # updatebase
-Write-Host "$("-"*60)"
-Write-Host "update autobuild suite"
-Write-Host "$("-"*60)"
+Write-Host "$("-"*60)`nupdate autobuild suite`n$("-"*60)"
 $scripts = "compile", "helper", "update"
 foreach ($s in $scripts) {
     if (!(Test-Path $build\media-suite_$($s).sh)) {
@@ -764,28 +762,16 @@ if ($jsonObjects.updateSuite -eq 1) {
 
 # update
 Remove-Item -Force $build\update.log -ErrorAction Ignore
-Start-Job -Name "ExplicitAndDeps" -ArgumentList $bash, $build -ScriptBlock {
-    param($bash, $build)
-    Invoke-Expression "$bash -lc 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
-} | Receive-Job -Wait
-Start-Job -Name "update" -ArgumentList $bash, $build, $build32, $build64 -ScriptBlock {
-    param($bash, $build, $build32, $build64)
-    Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'"  | Tee-Object $build\update.log
-} | Receive-Job -Wait
+Invoke-Expression "$bash -lc 'pacman -D --asexplicit --noconfirm --ask=20 mintty; pacman -D --asdep --noconfirm --ask=20 bzip2 findutils flex getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
+Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'"  | Tee-Object $build\update.log
 if (Test-Path $build\update_core) {
-    Start-Job -Name "criticalUpdates" -ArgumentList $bash, $build -ScriptBlock {
-        param($bash, $build)
-        Write-Host "$("-"*60)`ncritical updates`n$("-"*60)"
-        Remove-Item -Force $build\update_core.log -ErrorAction Ignore
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"  | Tee-Object $build\update_core.log
-    } | Receive-Job -Wait
+    Write-Output "$("-"*60)`ncritical updates`n$("-"*60)" | Tee-Object $build\update_core.log
+    Invoke-Expression "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'" | -Append Tee-Object $build\update_core.log
     Remove-Item $build\update_core
 }
 
 if ($msys2 -eq "msys32") {
-    Write-Host "$("-"*60)"
-    Write-Host "second rebase $msys2 system"
-    Write-Host "$("-"*60)"
+    Write-Host "$("-"*60)`nsecond rebase $msys2 system`n$("-"*60)"
     Start-Process -NoNewWindow -Wait -FilePath $msys2Path\autorebase.bat
 }
 # Write config profiles
