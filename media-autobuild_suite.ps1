@@ -519,11 +519,11 @@ if ($PSVersionTable.PSVersion.Major -ne 3) {
     Write-Host "If you want to reuse this console do"
     Write-Host "`$env:Path = `$Global:TempPath"
     Write-Host "else you won't have your original path in this console until you close and reopen."
-    Start-Sleep -Seconds 2
 }
 Write-Host "If you use control+C at any time durring the script, make sure to run"
 Write-Host "Get-Job | Remove-Job -Force"
 Write-Host "$("-"*60)"
+Start-Sleep -Seconds 2
 # Temporarily store the Path
 $Global:TempPath = $env:Path
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
@@ -632,11 +632,11 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log
     Write-Fstab
     Write-Output "$("-"*60)`nFirst update`n$("-"*60)" | Tee-Object $build\firstUpdate.log
-    Invoke-Expression "$bash -lc 'echo First msys2 update; pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object -Append $build\firstUpdate.log
+    Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object -Append $build\firstUpdate.log
     Write-Output "$("-"*60)`ncritical updates`n$("-"*60)" | Tee-Object $build\criticalUpdate.log
     Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"  | Tee-Object -Append $build\criticalUpdate.log
     Write-Output "$("-"*60)`nsecond update`n$("-"*60)" | Tee-Object $build\secondUpdate.log
-    Invoke-Expression "$bash -lc 'echo second msys2 update; pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"  | Tee-Object  -Append $build\secondUpdate.log
+    Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"  | Tee-Object  -Append $build\secondUpdate.log
     # equivalent to setlink.vbs
     $wshShell = New-Object -ComObject WScript.Shell
     $link = $wshShell.CreateShortcut("$PSScriptRoot\mintty.lnk")
