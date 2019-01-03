@@ -719,7 +719,7 @@ Remove-Item -Force $msys2Path\etc\pac-mingw.pk -ErrorAction Ignore
 foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk}
 
 function Get-Compiler ([int]$bit) {
-    Write-Host "$("-"*60)install $bit bit compiler$("-"*60)" | Tee-Object $build\mingw$($bit).log
+    Write-Host "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)" | Tee-Object $build\mingw$($bit).log
     Remove-Item $msys2Path\etc\pac-mingw.temp -Force -ErrorAction Ignore
     Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
     [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\pac-mingw.temp), $(Get-Content $msys2Path\etc\pac-mingw.temp), $(New-Object System.Text.UTF8Encoding $False))
