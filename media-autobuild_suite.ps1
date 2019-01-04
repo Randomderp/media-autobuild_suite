@@ -529,8 +529,8 @@ $Global:TempPath = $env:Path
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
-$msysprefix = switch ($msys2) {
-    msys32 {"i686"}
+$msysprefix = switch ([System.IntPtr]::Size) {
+    4 {"i686"}
     Default {"x86_64"}
 }
 
@@ -656,42 +656,17 @@ if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
     Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
 }
 
-if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc}
+if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
+    Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
+}
 if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
-    $(
-        Write-Output "[ui]`n"
-        Write-Output "username = $env:UserName`n"
-        Write-Output "verbose = True`n"
-        Write-Output "editor = vim`n`n"
-        Write-Output "[web]`n"
-        Write-Output "cacerts=/usr/ssl/cert.pem`n`n"
-        Write-Output "[extensions]`n"
-        Write-Output "color =`n`n"
-        Write-Output "[color]`n"
-        Write-Output "status.modified = magenta bold`n"
-        Write-Output "status.added = green bold`n"
-        Write-Output "status.removed = red bold`n"
-        Write-Output "status.deleted = cyan bold`n"
-        Write-Output "status.unknown = blue bold`n"
-        Write-Output "status.ignored = black bold`n"
-    ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.hgrc
+    [System.IO.File]::WriteAllText("$msys2Path\home\$env:UserName\.hgrc", "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold`n")
+
 }
 
 if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig)) {
-    $(
-        Write-Output "[user]`n"
-        Write-Output "name = $env:UserName`n"
-        Write-Output "email = $env:UserName@$env:COMPUTERNAME`n`n"
-        Write-Output "[color]`n"
-        Write-Output "ui = true`n`n"
-        Write-Output "[core]`n"
-        Write-Output "editor = vim"`n
-        Write-Output "autocrlf =`n`n"
-        Write-Output "[merge]`n"
-        Write-Output "tool = vimdiff`n`n"
-        Write-Output "[push]`n"
-        Write-Output "default = simple`n"
-    ) | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.gitconfig
+    [System.IO.File]::WriteAllText("$msys2Path\home\$env:UserName\.gitconfig",
+        "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple`n")
 }
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
@@ -700,10 +675,7 @@ foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\e
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)" | Tee-Object $build\pacman.log
     Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
-    Remove-Item $msys2Path\etc\pac-base.temp -Force -ErrorAction Ignore
-    foreach ($i in $msyspackages) {Write-Output "$i`n" | Out-File -Append -NoNewline $msys2Path\etc\pac-base.temp}
-    [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\pac-base.temp), $(Get-Content $msys2Path\etc\pac-base.temp), $(New-Object System.Text.UTF8Encoding $False))
-    (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\pac-base.temp -NoNewline -Force
+    [System.IO.File]::WriteAllText("$msys2Path\etc\pac-base.temp", $($msyspackages | ForEach-Object {"$_"} | Out-String))
     Invoke-Expression "$bash -lc 'cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object $build\pacman.log
     Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
 }
@@ -720,10 +692,7 @@ foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\
 
 function Get-Compiler ([int]$bit) {
     Write-Host "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)" | Tee-Object $build\mingw$($bit).log
-    Remove-Item $msys2Path\etc\pac-mingw.temp -Force -ErrorAction Ignore
-    Get-Content $msys2Path\etc\pac-mingw.pk | ForEach-Object {"mingw-w64-$($msysprefix)-" + $_ + "`n"} | Out-File -Force -NoNewline $msys2Path\etc\pac-mingw.temp
-    [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\pac-mingw.temp), $(Get-Content $msys2Path\etc\pac-mingw.temp), $(New-Object System.Text.UTF8Encoding $False))
-    (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\pac-mingw.temp -NoNewline -Force
+    [System.IO.File]::WriteAllText("$msys2Path\etc\pac-mingw.temp", $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String))
     Invoke-Expression "$bash -lc 'cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object -Append $build\mingw$($bit).log
     Remove-Item $msys2Path\etc\pac-mingw.temp -ErrorAction Ignore
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
@@ -775,50 +744,7 @@ if ($msys2 -eq "msys32") {
 }
 # Write config profiles
 function Write-Profile ([int]$bit) {
-    $(
-        Write-Output "MSYSTEM=MINGW$bit`n"
-        Write-Output "source /etc/msystem`n`n"
-        Write-Output "# package build directory`n"
-        Write-Output "LOCALBUILDDIR=/build`n"
-        Write-Output "# package installation prefix`n"
-        Write-Output "LOCALDESTDIR=/local$bit`n"
-        Write-Output "export LOCALBUILDDIR LOCALDESTDIR`n`n"
-        Write-Output "bits='$($bit)bit'`n`n"
-        Write-Output "alias dir='ls -la --color=auto'`n"
-        Write-Output "alias ls='ls --color=auto'`n"
-        Write-Output "export CC=gcc`n`n"
-        Write-Output "CARCH=`"$msysprefix`"`n"
-        Write-Output "CPATH=`"``cygpath -m `$LOCALDESTDIR/include``;``cygpath -m `$MINGW_PREFIX/include```"`n"
-        Write-Output "LIBRARY_PATH=`"``cygpath -m `$LOCALDESTDIR/lib``;``cygpath -m `$MINGW_PREFIX/lib```"`n"
-        Write-Output "export CPATH LIBRARY_PATH`n`n"
-        Write-Output "MANPATH=`"`$`{LOCALDESTDIR`}/share/man:`$`{MINGW_PREFIX`}/share/man:/usr/share/man`"`n"
-        Write-Output "INFOPATH=`"`$`{LOCALDESTDIR`}/share/info:`$`{MINGW_PREFIX`}/share/info:/usr/share/info`"`n`n"
-        Write-Output "DXSDK_DIR=`"`$`{MINGW_PREFIX`}/`$`{MINGW_CHOST`}`"`n"
-        Write-Output "ACLOCAL_PATH=`"`$`{LOCALDESTDIR`}/share/aclocal:`$`{MINGW_PREFIX`}/share/aclocal:/usr/share/aclocal`"`n"
-        Write-Output "PKG_CONFIG=`"`$`{MINGW_PREFIX`}/bin/pkg-config --static`"`n"
-        Write-Output "PKG_CONFIG_PATH=`"`$`{LOCALDESTDIR`}/lib/pkgconfig:`$`{MINGW_PREFIX`}/lib/pkgconfig`"`n"
-        Write-Output "CPPFLAGS=`"-D_FORTIFY_SOURCE=2 -D__USE_MINGW_ANSI_STDIO=1`"`n"
-        Write-Output "CFLAGS=`"-mthreads -mtune=generic -O2 -pipe`"`n"
-        Write-Output "CXXFLAGS=`"`$`{CFLAGS`}`"`n"
-        Write-Output "LDFLAGS=`"-pipe -static-libgcc -static-libstdc++`"`n"
-        Write-Output "export DXSDK_DIR ACLOCAL_PATH PKG_CONFIG PKG_CONFIG_PATH CPPFLAGS CFLAGS CXXFLAGS LDFLAGS MSYSTEM`n`n"
-        Write-Output "export CARGO_HOME=`"/opt/cargo`" RUSTUP_HOME=`"/opt/cargo`"`n`n"
-        Write-Output "export PYTHONPATH=`n`n"
-        Write-Output "LANG=en_US.UTF-8`n"
-        Write-Output "PATH=`"`$`{LOCALDESTDIR`}/bin:`$`{MINGW_PREFIX`}/bin:`$`{INFOPATH`}:`$`{MSYS2_PATH`}:`$`{ORIGINAL_PATH`}`"`n"
-        Write-Output "PATH=`"`$`{LOCALDESTDIR`}/bin-audio:`$`{LOCALDESTDIR`}/bin-global:`$`{LOCALDESTDIR`}/bin-video:`$`{PATH`}`"`n"
-        Write-Output "PATH=`"/opt/cargo/bin:/opt/bin:`$`{PATH`}`"`n"
-        Write-Output "source '/etc/profile.d/perlbin.sh'`n"
-        Write-Output "PS1='\[\033[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\n\$ '`n"
-        Write-Output "HOME=`"/home/`$`{USERNAME`}`"`n"
-        Write-Output "GIT_GUI_LIB_DIR=``cygpath -w /usr/share/git-gui/lib```n"
-        Write-Output "export LANG PATH PS1 HOME GIT_GUI_LIB_DIR`n"
-        Write-Output "stty susp undef`n"
-        Write-Output "cd /trunk`n"
-        Write-Output "test -f `"`$LOCALDESTDIR/etc/custom_profile`" && source `"`$LOCALDESTDIR/etc/custom_profile`"`n"
-    ) | Out-File -NoNewline -Encoding utf8 -Force $PSScriptRoot\local$($bit)\etc\profile2.local
-    [System.IO.File]::WriteAllLines($(Resolve-Path $PSScriptRoot\local$($bit)\etc\profile2.local), $(Get-Content $PSScriptRoot\local$($bit)\etc\profile2.local), $(New-Object System.Text.UTF8Encoding $False))
-    (Get-Content $PSScriptRoot\local$($bit)\etc\profile2.local -Raw).Replace("`r`n", "`n") | Set-Content $PSScriptRoot\local$($bit)\etc\profile2.local -NoNewline -Force
+    [System.IO.File]::WriteAllText("$PSScriptRoot\local$($bit)\etc\profile2.local", "MSYSTEM=MINGW$bit`nsource /etc/msystem`n`n# package build directory`nLOCALBUILDDIR=/build`n# package installation prefix`nLOCALDESTDIR=/local$bit`nexport LOCALBUILDDIR LOCALDESTDIR`n`nbits='$($bit)bit'`n`nalias dir='ls -la --color=auto'`nalias ls='ls --color=auto'`nexport CC=gcc`n`nCARCH=`"$msysprefix`"`nCPATH=`"``cygpath -m `$LOCALDESTDIR/include``;``cygpath -m `$MINGW_PREFIX/include```"`nLIBRARY_PATH=`"``cygpath -m `$LOCALDESTDIR/lib``;``cygpath -m `$MINGW_PREFIX/lib```"`nexport CPATH LIBRARY_PATH`n`nMANPATH=`"`$`{LOCALDESTDIR`}/share/man:`$`{MINGW_PREFIX`}/share/man:/usr/share/man`"`nINFOPATH=`"`$`{LOCALDESTDIR`}/share/info:`$`{MINGW_PREFIX`}/share/info:/usr/share/info`"`n`nDXSDK_DIR=`"`$`{MINGW_PREFIX`}/`$`{MINGW_CHOST`}`"`nACLOCAL_PATH=`"`$`{LOCALDESTDIR`}/share/aclocal:`$`{MINGW_PREFIX`}/share/aclocal:/usr/share/aclocal`"`nPKG_CONFIG=`"`$`{MINGW_PREFIX`}/bin/pkg-config --static`"`nPKG_CONFIG_PATH=`"`$`{LOCALDESTDIR`}/lib/pkgconfig:`$`{MINGW_PREFIX`}/lib/pkgconfig`"`nCPPFLAGS=`"-D_FORTIFY_SOURCE=2 -D__USE_MINGW_ANSI_STDIO=1`"`nCFLAGS=`"-mthreads -mtune=generic -O2 -pipe`"`nCXXFLAGS=`"`$`{CFLAGS`}`"`nLDFLAGS=`"-pipe -static-libgcc -static-libstdc++`"`nexport DXSDK_DIR ACLOCAL_PATH PKG_CONFIG PKG_CONFIG_PATH CPPFLAGS CFLAGS CXXFLAGS LDFLAGS MSYSTEM`n`nexport CARGO_HOME=`"/opt/cargo`" RUSTUP_HOME=`"/opt/cargo`"`n`nexport PYTHONPATH=`n`nLANG=en_US.UTF-8`nPATH=`"`$`{LOCALDESTDIR`}/bin:`$`{MINGW_PREFIX`}/bin:`$`{INFOPATH`}:`$`{MSYS2_PATH`}:`$`{ORIGINAL_PATH`}`"`nPATH=`"`$`{LOCALDESTDIR`}/bin-audio:`$`{LOCALDESTDIR`}/bin-global:`$`{LOCALDESTDIR`}/bin-video:`$`{PATH`}`"`nPATH=`"/opt/cargo/bin:/opt/bin:`$`{PATH`}`"`nsource '/etc/profile.d/perlbin.sh'`nPS1='\[\033[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\n\$ '`nHOME=`"/home/`$`{USERNAME`}`"`nGIT_GUI_LIB_DIR=``cygpath -w /usr/share/git-gui/lib```nexport LANG PATH PS1 HOME GIT_GUI_LIB_DIR`nstty susp undef`ncd /trunk`ntest -f `"`$LOCALDESTDIR/etc/custom_profile`" && source `"`$LOCALDESTDIR/etc/custom_profile`"`n")
 }
 if ($build32 -eq "yes") {Write-Profile -bit 32}
 if ($build64 -eq "yes") {Write-Profile -bit 64}
@@ -826,9 +752,7 @@ if ($build64 -eq "yes") {Write-Profile -bit 64}
 # loginProfile
 if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\profile.pacnew $msys2Path\etc\profile}
 if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {
-    Write-Output "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-File -NoNewline -Force -Encoding utf8 $msys2Path\etc\profile.d\Zab-suite.sh
-    [System.IO.File]::WriteAllLines($(Resolve-Path $msys2Path\etc\profile.d\Zab-suite.sh), $(Get-Content $msys2Path\etc\profile.d\Zab-suite.sh), $(New-Object System.Text.UTF8Encoding $False))
-    (Get-Content $msys2Path\etc\profile.d\Zab-suite.sh -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\profile.d\Zab-suite.sh -NoNewline -Force
+    [System.IO.File]::WriteAllText("$msys2Path\etc\profile.d\Zab-suite.sh", "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi")
 }
 
 # compileLocals
