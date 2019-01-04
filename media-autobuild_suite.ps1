@@ -676,6 +676,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)" | Tee-Object $build\pacman.log
     Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
     [System.IO.File]::WriteAllText("$msys2Path\etc\pac-base.temp", $($msyspackages | ForEach-Object {"$_"} | Out-String))
+    (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
     Invoke-Expression "$bash -lc 'cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object $build\pacman.log
     Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
 }
@@ -693,8 +694,8 @@ foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\
 function Get-Compiler ([int]$bit) {
     Write-Host "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)" | Tee-Object $build\mingw$($bit).log
     [System.IO.File]::WriteAllText("$msys2Path\etc\pac-mingw.temp", $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String))
+    (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r`n", "`n") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
     Invoke-Expression "$bash -lc 'cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object -Append $build\mingw$($bit).log
-    Remove-Item $msys2Path\etc\pac-mingw.temp -ErrorAction Ignore
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
         Write-Host "$("-"*60)`nMinGW$($bit) GCC compiler isn't installed; maybe the download didn't work`nDo you want to try it again?`n$("-"*60)"
         if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
@@ -702,6 +703,8 @@ function Get-Compiler ([int]$bit) {
         } else {
             exit
         }
+    } else {
+        Remove-Item $msys2Path\etc\pac-mingw.temp -ErrorAction Ignore
     }
 }
 if (($build32 -eq "yes") -and !(Test-Path $msys2Path\mingw32\bin\gcc.exe)) {Get-Compiler -bit 32}
