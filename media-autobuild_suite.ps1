@@ -572,9 +572,12 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
     try {
-        Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-        Remove-Item $build\msys2-base.tar -ErrorAction Ignore
-        Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
+        if ((Test-Path $env:TEMP\msys2-base.tar.xz) -and ((Get-Item $env:TEMP\msys2-base.tar.xz).Length -eq (Invoke-WebRequest -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz" -UseBasicParsing -Method Head).headers.'Content-Length')) {
+            Copy-Item $env:TEMP\msys2-base.tar.xz $build\msys2-base.tar.xz
+        } else {
+            Remove-Item $env:TEMP\msys2-base.tar.xz
+            Invoke-WebRequest -OutFile $env:TEMP\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
+        }
         Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
         Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
         Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar"
