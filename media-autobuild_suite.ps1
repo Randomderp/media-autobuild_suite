@@ -651,12 +651,12 @@ function Write-Fstab {
 }
 
 $replacechars = @{
-    [char]27 = ""
-    '[[H[J]' = ""
-    '[[1m]'    = ""
-    '[[0;10m]' = ""
-    '[[32m]'   = ""
-    '[[34m]'   = ""
+    [char]27   = ""
+    "``[H``[J" = ""
+    "``[1m"     = ""
+    "``[0;10m"  = ""
+    "``[32m"    = ""
+    "``[34m"    = ""
 }
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
