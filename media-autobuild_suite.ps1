@@ -636,12 +636,12 @@ function Write-Fstab {
 }
 
 $replacechars = @{
-    [char]27   = ""
-    "'[H[J'" = ""
-    "'[1m'"     = ""
-    "'[0;10m'"  = ""
-    "'[32m'"    = ""
-    "'[34m'"    = ""
+    [char]27  = ""
+    "\[H\[J'" = ""
+    "\[1m"    = ""
+    "\[0;10m" = ""
+    "\[32m"   = ""
+    "\[34m"   = ""
 }
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
@@ -652,13 +652,13 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     }
     Write-Output "$("-"*60)`n- make a first run`n$("-"*60)" | Tee-Object $build\firstrun.log
     Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {
-        $templine = $_
-        $replacechars.GetEnumerator() | ForEach-Object {
-            if ($templine -match $_.Key) {
-                $templine = $templine -replace $_.Key, $_.Value
-            }
-        }
-        $templine
+        #$templine = $_
+        #$replacechars.GetEnumerator() | ForEach-Object {
+        #    if ($templine -match $_.Key) {
+        #        $templine = $templine -replace $_.Key, $_.Value
+        #    }
+        #}
+        $_ -replace '\x1b\[[0-9;]*m', ''
     }
     Write-Fstab
     Write-Output "$("-"*60)`nFirst update`n$("-"*60)" | Tee-Object $build\firstUpdate.log
