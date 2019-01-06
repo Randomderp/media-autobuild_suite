@@ -571,42 +571,27 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\wget-pack.exe
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
-    $iteration = 0
-    function Get-Msys2 ([switch]$failed) {
-        if ($failed) {
-            if ($iteration -le 2) {
-                $iteration += 1
-                Write-Host "Msys2 base download/extraction failed! Redownloading and trying again."
-                Start-Sleep 2
-            } else {
-                Write-Host "$("-"*60)`n"
-                Write-Host "- Download msys2 basic system failed,"
-                Write-Host "- please download it manually from:"
-                Write-Host "- http://repo.msys2.org/distrib/"
-                Write-Host "- and copy the uncompressed folder to:"
-                Write-Host "- $build"
-                Write-Host "- and start the batch script again!`n"
-                Write-Host "$("-"*60)"
-                pause
-                exit
-            }
-        }
+    try {
         Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
         Remove-Item $build\msys2-base.tar -ErrorAction Ignore
         Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
-        if (Test-Path $build\msys2-base.tar.xz) {
-            Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
-            if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
-            Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-            Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar"
-            if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
-            Remove-Item $build\msys2-base.tar
-            Move-Item -Path $build\msys64 $PSScriptRoot
-        } else {
-            Get-Msys2 -failed
-        }
+        Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
+        Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
+        Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar"
+        Remove-Item $build\msys2-base.tar
+        Move-Item -Path $build\msys64 $PSScriptRoot
+    } catch {
+        Write-Host "$("-"*60)`n"
+        Write-Host "- Download msys2 basic system failed,"
+        Write-Host "- please download it manually from:"
+        Write-Host "- http://repo.msys2.org/distrib/"
+        Write-Host "- and copy the uncompressed folder to:"
+        Write-Host "- $build"
+        Write-Host "- and start the batch script again!`n"
+        Write-Host "$("-"*60)"
+        pause
+        exit
     }
-    Get-Msys2
     if (!(Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "$("-"*60)`n"
         Write-Host "- Download msys2 basic system failed,"
@@ -652,11 +637,11 @@ function Write-Fstab {
 
 $replacechars = @{
     [char]27   = ""
-    "``[H``[J" = ""
-    "``[1m"     = ""
-    "``[0;10m"  = ""
-    "``[32m"    = ""
-    "``[34m"    = ""
+    "'[H[J'" = ""
+    "'[1m'"     = ""
+    "'[0;10m'"  = ""
+    "'[32m'"    = ""
+    "'[34m'"    = ""
 }
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
