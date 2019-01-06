@@ -571,14 +571,24 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\wget-pack.exe
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
-    Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-    Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
-    if (Test-Path $build\msys2-base.tar.xz) {
-        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
-        Remove-Item $build\msys2-base.tar.xz
-        Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
-        Remove-Item $build\msys2-base.tar
+    function Get-Msys2 ([switch]$failed) {
+        if ($failed) {Write-Host "Msys2 base download/extraction failed! Redownloading and trying again."}
+        Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
+        Remove-Item $build\msys2-base.tar -ErrorAction Ignore
+        Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
+        if (Test-Path $build\msys2-base.tar.xz) {
+            Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
+            if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
+            Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
+            Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
+            if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
+            Remove-Item $build\msys2-base.tar
+        } else {
+            Get-Msys2 -failed
+        }
     }
+
+
     if (!(Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "$("-"*60)`n"
         Write-Host "- Download msys2 basic system failed,"
@@ -621,6 +631,8 @@ function Write-Fstab {
     if ($build32 -eq "yes") {Write-Output "$PSScriptRoot\local32\ /local32" | Out-File -NoNewline -Append $fstab}
     if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -NoNewline -Append $fstab}
 }
+
+#$CR = ([char[]] (3, 0, 2, 3, 1)) -join ''
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
