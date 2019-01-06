@@ -577,6 +577,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             if ($iteration -le 2) {
                 $iteration += 1
                 Write-Host "Msys2 base download/extraction failed! Redownloading and trying again."
+                Start-Sleep 2
             } else {
                 Write-Host "$("-"*60)`n"
                 Write-Host "- Download msys2 basic system failed,"
@@ -649,7 +650,7 @@ function Write-Fstab {
     if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -NoNewline -Append $fstab}
 }
 
-#$CR = ([char[]] (3, 0, 2, 3, 1)) -join ''
+#$CR = ([char[]] (27)) -join ''
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
@@ -658,7 +659,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
     }
     Write-Output "$("-"*60)`n- make a first run`n$("-"*60)" | Tee-Object $build\firstrun.log
-    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log
+    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {$_ -replace "$([char]27)" -replace "[1[32m" -replace "[0;10m[1m" -replace "[0;10m"}
     Write-Fstab
     Write-Output "$("-"*60)`nFirst update`n$("-"*60)" | Tee-Object $build\firstUpdate.log
     Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object -Append $build\firstUpdate.log
