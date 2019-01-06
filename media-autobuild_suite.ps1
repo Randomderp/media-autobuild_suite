@@ -573,29 +573,17 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
     try {
         if ((Test-Path $env:TEMP\msys2-base.tar.xz) -and ((Get-Item $env:TEMP\msys2-base.tar.xz).Length -eq (Invoke-WebRequest -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz" -UseBasicParsing -Method Head).headers.'Content-Length')) {
-            Copy-Item $env:TEMP\msys2-base.tar.xz $build\msys2-base.tar.xz
         } else {
-            Remove-Item $env:TEMP\msys2-base.tar.xz
+            Remove-Item $env:TEMP\msys2-base.tar.xz -ErrorAction Ignore
             Invoke-WebRequest -OutFile $env:TEMP\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
         }
+        Copy-Item $env:TEMP\msys2-base.tar.xz $build\msys2-base.tar.xz
         Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
         Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
         Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar"
         Remove-Item $build\msys2-base.tar
         Move-Item -Path $build\msys64 $PSScriptRoot
     } catch {
-        Write-Host "$("-"*60)`n"
-        Write-Host "- Download msys2 basic system failed,"
-        Write-Host "- please download it manually from:"
-        Write-Host "- http://repo.msys2.org/distrib/"
-        Write-Host "- and copy the uncompressed folder to:"
-        Write-Host "- $build"
-        Write-Host "- and start the batch script again!`n"
-        Write-Host "$("-"*60)"
-        pause
-        exit
-    }
-    if (!(Test-Path $PSScriptRoot\$msys2\usr\bin\msys-2.0.dll)) {
         Write-Host "$("-"*60)`n"
         Write-Host "- Download msys2 basic system failed,"
         Write-Host "- please download it manually from:"
@@ -638,15 +626,6 @@ function Write-Fstab {
     if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -NoNewline -Append $fstab}
 }
 
-$replacechars = @{
-    [char]27  = ""
-    "\[H\[J'" = ""
-    "\[1m"    = ""
-    "\[0;10m" = ""
-    "\[32m"   = ""
-    "\[34m"   = ""
-}
-
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
     if ($msys2 -eq "msys32") {
@@ -654,15 +633,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
     }
     Write-Output "$("-"*60)`n- make a first run`n$("-"*60)" | Tee-Object $build\firstrun.log
-    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {
-        #$templine = $_
-        #$replacechars.GetEnumerator() | ForEach-Object {
-        #    if ($templine -match $_.Key) {
-        #        $templine = $templine -replace $_.Key, $_.Value
-        #    }
-        #}
-        $_ -replace '\x1b\[[0-9;]*m', ''
-    }
+    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', ''}
     Write-Fstab
     Write-Output "$("-"*60)`nFirst update`n$("-"*60)" | Tee-Object $build\firstUpdate.log
     Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object -Append $build\firstUpdate.log
@@ -670,7 +641,6 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"  | Tee-Object -Append $build\criticalUpdate.log
     Write-Output "$("-"*60)`nsecond update`n$("-"*60)" | Tee-Object $build\secondUpdate.log
     Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"  | Tee-Object  -Append $build\secondUpdate.log
-    # equivalent to setlink.vbs
     $wshShell = New-Object -ComObject WScript.Shell
     $link = $wshShell.CreateShortcut("$PSScriptRoot\mintty.lnk")
     $link.TargetPath = "$msys2Path\msys2_shell.cmd"
@@ -681,25 +651,20 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
 }
-if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot))) {
-    Write-Fstab
-}
+if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot))) {Write-Fstab}
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
     Write-Host "$("-"*60)`nForcefully signing abrepo key`n$("-"*60)"
     Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
 }
-
 if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
-    Write-Output "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-File -NoNewline -Force $msys2Path\home\$env:UserName\.minttyrc
+    New-Item -ItemType File -Force -Path $msys2Path\home\$env:UserName\.minttyrc -Value "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30"
 }
 if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
-    [System.IO.File]::WriteAllText("$msys2Path\home\$env:UserName\.hgrc", "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold`n")
+    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.hgrc -Value "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold`n"
 
 }
-
 if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig)) {
-    [System.IO.File]::WriteAllText("$msys2Path\home\$env:UserName\.gitconfig",
-        "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple`n")
+    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.gitconfig -Value "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple`n"
 }
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
@@ -799,51 +764,7 @@ $MSYSTEM = switch ($build32) {
 Set-Location $PSScriptRoot
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $Host.UI.RawUI.WindowTitle = "MABSbat"
-Start-Job -Name "Media-Autobuild_Suite Compile" -ArgumentList $msys2Path, $MSYSTEM, $build, $bash, $($jsonObjects.Cores), $build32, $build64, $deleteSource, $mp4box, $vpx2, $x2643, $x2652, $other265, $flac, $fdkaac, $mediainfo, $soxB, $ffmpeg, $ffmpegUpdate, $ffmpegChoice, $mplayer2, $mpv, $license2, $strip, $pack, $rtmpdump, $logging, $bmx, $standalone, $aom, $faac, $ffmbc, $curl, $cyanrip2, $redshift, $rav1e, $ripgrep, $dav1d, $vvc -ScriptBlock {
-    param(
-        $msys2Path,
-        $MSYSTEM,
-        $build,
-        $bash,
-        $cores,
-        $build32,
-        $build64,
-        $deleteSource,
-        $mp4box,
-        $vpx2,
-        $x2643,
-        $x2652,
-        $other265,
-        $flac,
-        $fdkaac,
-        $mediainfo,
-        $soxB,
-        $ffmpeg,
-        $ffmpegUpdate,
-        $ffmpegChoice,
-        $mplayer2,
-        $mpv,
-        $license2,
-        $strip,
-        $pack,
-        $rtmpdump,
-        $logging,
-        $bmx,
-        $standalone,
-        $aom,
-        $faac,
-        $ffmbc,
-        $curl,
-        $cyanrip2,
-        $redshift,
-        $rav1e,
-        $ripgrep,
-        $dav1d,
-        $vvc
-    )
-    Remove-Item -Force $build\compile.log -ErrorAction Ignore
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq"  | Tee-Object $build\compile.log
-}
-while (Get-Job -State Running) {Receive-Job -Name "Media-Autobuild_Suite Compile" | Out-Host}
+Remove-Item -Force $build\compile.log -ErrorAction Ignore
+Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash --login /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq"  | Tee-Object $build\compile.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', ''}
+Remove-Item $env:TEMP\msys2-base.tar.xz -ErrorAction Ignore
 $env:Path = $Global:TempPath
