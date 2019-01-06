@@ -577,10 +577,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\msys2-base.tar -ErrorAction Ignore
         Invoke-WebRequest -OutFile $build\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
         if (Test-Path $build\msys2-base.tar.xz) {
-            Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz"
+            Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
             if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
             Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-            Start-Process -WorkingDirectory $build -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar -o.."
+            Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar -o.."
             if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
             Remove-Item $build\msys2-base.tar
         } else {
