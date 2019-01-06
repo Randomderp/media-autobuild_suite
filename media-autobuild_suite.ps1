@@ -597,9 +597,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
             if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
             Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-            Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar -o.."
+            Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar"
             if (-not $? -or $LASTEXITCODE -ne 0) {Get-Msys2 -failed}
             Remove-Item $build\msys2-base.tar
+            Move-Item -Path $build\msys64 $PSScriptRoot
         } else {
             Get-Msys2 -failed
         }
