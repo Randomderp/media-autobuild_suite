@@ -652,6 +652,7 @@ function Write-Fstab {
 
 $replacechars = @{
     [char]27 = ""
+    '[[H[J]' = ""
     '[[1m]'    = ""
     '[[0;10m]' = ""
     '[[32m]'   = ""
