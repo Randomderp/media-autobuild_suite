@@ -617,20 +617,6 @@ function Write-BaseFolders ([int]$bit) {
 }
 if ($build64 -eq "yes") {Write-BaseFolders -bit 64}
 if ($build32 -eq "yes") {Write-BaseFolders -bit 32}
-$fstab = Resolve-Path $msys2Path\etc\fstab
-# checkFstab
-function Write-Fstab {
-    Write-Host "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
-    $(
-        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0`n"
-        Write-Output "$PSScriptRoot\ /trunk`n"
-        Write-Output "$PSScriptRoot\build\ /build`n"
-        Write-Output "$msys2Path\mingw32\ /mingw32`n"
-        Write-Output "$msys2Path\mingw64\ /mingw64`n"
-    ) | Out-File -NoNewline -Force $fstab
-    if ($build32 -eq "yes") {Write-Output "$PSScriptRoot\local32\ /local32" | Out-File -NoNewline -Append $fstab}
-    if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64" | Out-File -NoNewline -Append $fstab}
-}
 
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
@@ -657,7 +643,22 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
 }
-if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -ne $PSScriptRoot))) {Write-Fstab}
+
+$fstab = Resolve-Path $msys2Path\etc\fstab
+function Write-Fstab {
+    Write-Host "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
+    $(
+        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0`n"
+        Write-Output "$PSScriptRoot\ /trunk`n"
+        Write-Output "$PSScriptRoot\build\ /build`n"
+        Write-Output "$msys2Path\mingw32\ /mingw32`n"
+        Write-Output "$msys2Path\mingw64\ /mingw64`n"
+        if ($build32 -eq "yes") {Write-Output "$PSScriptRoot\local32\ /local32`n"}
+        if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64`n"}
+    ) | Out-File -NoNewline -Force $fstab
+
+}
+if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -notmatch $PSScriptRoot))) {Write-Fstab}
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
     Write-Host "$("-"*60)`nForcefully signing abrepo key`n$("-"*60)"
     Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
