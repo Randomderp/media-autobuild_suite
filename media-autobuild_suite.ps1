@@ -79,8 +79,12 @@ $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
 $jsonObjects = [PSCustomObject]@{
     msys2Arch    = switch ([System.IntPtr]::Size) {
-        4 {1}
-        default {2}
+        4 {
+            1
+        }
+        default {
+            2
+        }
     }
     arch         = 0
     license2     = 0
@@ -368,61 +372,127 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
         }
         arch {
             $build32 = switch ($jsonObjects.arch) {
-                1 {"yes"}
-                2 {"yes"}
-                Default {"no"}
+                1 {
+                    "yes"
+                }
+                2 {
+                    "yes"
+                }
+                Default {
+                    "no"
+                }
             }
             $build64 = switch ($jsonObjects.arch) {
-                1 {"yes"}
-                3 {"yes"}
-                Default {"no"}
+                1 {
+                    "yes"
+                }
+                3 {
+                    "yes"
+                }
+                Default {
+                    "no"
+                }
             }
         }
         license2 {
             $license2 = switch ($jsonObjects.license2) {
-                1 {"nonfree"}
-                2 {"gplv3"}
-                3 {"gpl"}
-                4 {"lgplv3"}
-                5 {"lgpl"}
+                1 {
+                    "nonfree"
+                }
+                2 {
+                    "gplv3"
+                }
+                3 {
+                    "gpl"
+                }
+                4 {
+                    "lgplv3"
+                }
+                5 {
+                    "lgpl"
+                }
             }
         }
         x2643 {
             $x2643 = switch ($jsonObjects.x2643) {
-                1 {"yes"}
-                2 {"no"}
-                3 {"high"}
-                4 {"full"}
-                5 {"shared"}
-                6 {"fullv"}
-                7 {"o8"}
+                1 {
+                    "yes"
+                }
+                2 {
+                    "no"
+                }
+                3 {
+                    "high"
+                }
+                4 {
+                    "full"
+                }
+                5 {
+                    "shared"
+                }
+                6 {
+                    "fullv"
+                }
+                7 {
+                    "o8"
+                }
             }
         }
         x2652 {
             $x2652 = switch ($jsonObjects.x2652) {
-                1 {"y"}
-                2 {"n"}
-                3 {"o10"}
-                4 {"o8"}
-                5 {"s"}
-                6 {"d"}
-                7 {"o12"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "o10"
+                }
+                4 {
+                    "o8"
+                }
+                5 {
+                    "s"
+                }
+                6 {
+                    "d"
+                }
+                7 {
+                    "o12"
+                }
             }
         }
         ffmpegB2 {
             $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                1 {"static"}
-                2 {"no"}
-                3 {"shared"}
-                4 {"both"}
-                5 {"sharedlibs"}
+                1 {
+                    "static"
+                }
+                2 {
+                    "no"
+                }
+                3 {
+                    "shared"
+                }
+                4 {
+                    "both"
+                }
+                5 {
+                    "sharedlibs"
+                }
             }
         }
         ffmpegUpdate {
             $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
-                1 {"y"}
-                2 {"n"}
-                3 {"onlyFFmpeg"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "onlyFFmpeg"
+                }
             }
         }
         ffmpegChoice {
@@ -475,40 +545,74 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                     }
 
                 }
-                2 {$ffmpegChoice = "n"}
-                3 {$ffmpegChoice = "z"}
-                4 {$ffmpegChoice = "f"}
+                2 {
+                    $ffmpegChoice = "n"
+                }
+                3 {
+                    $ffmpegChoice = "z"
+                }
+                4 {
+                    $ffmpegChoice = "f"
+                }
             }
         }
         mpv {
             $mpv = switch ($jsonObjects.mpv) {
-                1 {"y"}
-                2 {"n"}
-                3 {"z"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "z"
+                }
             }
         }
         curl {
             $curl = switch ($jsonObjects.curl) {
-                1 {"y"}
-                2 {"n"}
-                3 {"schannel"}
-                4 {"gnutls"}
-                5 {"openssl"}
-                6 {"libressl"}
-                7 {"mbedtls"}
+                1 {
+                    "y"
+                }
+                2 {
+                    "n"
+                }
+                3 {
+                    "schannel"
+                }
+                4 {
+                    "gnutls"
+                }
+                5 {
+                    "openssl"
+                }
+                6 {
+                    "libressl"
+                }
+                7 {
+                    "mbedtls"
+                }
             }
         }
         cyanrip2 {
             $cyanrip2 = switch ($jsonObjects.cyanrip2) {
-                1 {"yes"}
-                2 {"no"}
+                1 {
+                    "yes"
+                }
+                2 {
+                    "no"
+                }
             }
         }
         Default {
             Set-Variable -Name $($a) -Value $(
                 switch ($jsonObjects.$a) {
-                    1 {"y"}
-                    2 {"n"}
+                    1 {
+                        "y"
+                    }
+                    2 {
+                        "n"
+                    }
                 }
             )
         }
@@ -667,11 +771,10 @@ if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
     New-Item -ItemType File -Force -Path $msys2Path\home\$env:UserName\.minttyrc -Value "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30"
 }
 if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
-    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.hgrc -Value "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold`n"
-
+    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.hgrc -Value "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold"
 }
 if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig)) {
-    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.gitconfig -Value "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple`n"
+    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.gitconfig -Value "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple"
 }
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
@@ -690,14 +793,14 @@ Remove-Item -Force $build\cert.log -ErrorAction Ignore
 Invoke-Expression "$bash -lc update-ca-trust"  | Tee-Object $build\cert.log
 
 if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {
-    Write-Output "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%`r`n" | Out-File -Force -NoNewline $msys2Path\usr\bin\hg.bat
+    New-Item -Force -ItemType File -Path $msys2Path\usr\bin\hg.bat -Value "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%"
 }
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk -ErrorAction Ignore
 foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk}
 
 function Get-Compiler ([int]$bit) {
-    Write-Host "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)" | Tee-Object $build\mingw$($bit).log
+    Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)" | Tee-Object $build\mingw$($bit).log
     New-Item -Force -ItemType File -Path $msys2Path\etc\pac-mingw.temp -Value $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String)
     (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
     Invoke-Expression "$bash -lc 'cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object -Append $build\mingw$($bit).log
