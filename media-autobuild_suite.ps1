@@ -32,7 +32,7 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
     Pause
     exit
 }
-#requires -Version 3.0.0
+#requires -Version 3
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 $PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 
@@ -785,7 +785,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
     Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
     New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String)
     (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
-    Invoke-Expression "$bash -lc 'cat /etc/pac-base.temp | pacman -Sw --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-base.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object $build\pacman.log
+    Invoke-Expression "$bash -lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"  | Tee-Object $build\pacman.log
     Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
 }
 
@@ -803,7 +803,7 @@ function Get-Compiler ([int]$bit) {
     Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)" | Tee-Object $build\mingw$($bit).log
     New-Item -Force -ItemType File -Path $msys2Path\etc\pac-mingw.temp -Value $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String)
     (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
-    Invoke-Expression "$bash -lc 'cat /etc/pac-mingw.temp | pacman -Sw --noconfirm --ask=20 --needed -; cat /etc/pac-mingw.temp | pacman -S --noconfirm --ask=20 --needed - ; cat /etc/pac-mingw.temp | pacman -D --asexplicit --noconfirm --ask=20 -'"  | Tee-Object -Append $build\mingw$($bit).log
+    Invoke-Expression "$bash -lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"  | Tee-Object -Append $build\mingw$($bit).log
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
         Write-Host "$("-"*60)`nMinGW$($bit) GCC compiler isn't installed; maybe the download didn't work`nDo you want to try it again?`n$("-"*60)"
         if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
