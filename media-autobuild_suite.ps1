@@ -121,7 +121,6 @@ $jsonObjects = [PSCustomObject]@{
     pack         = 0
     logging      = 0
     updateSuite  = 0
-    addpath      = 0
 }
 
 function Write-Questions ($Question) {
@@ -163,7 +162,6 @@ function Write-Questions ($Question) {
         pack {Write-Host "Pack compiled files?"}
         logging {Write-Host "Write logs of compilation commands?"}
         updateSuite {Write-Host "Create script to update suite files automatically?"}
-        addpath {Write-Host "Add bin-audio and bin-video to PATH?"}
     }
     switch -Regex ($Question) {
         arch {
@@ -308,7 +306,6 @@ function Write-Questions ($Question) {
             Write-Host "If you have made changes to the scripts, they will be reset but saved to"
             Write-Host "a .diff text file inside $build`n"
         }
-        addpath {Write-Host "Make sure to learn what the environment path is before saying yes."}
     }
     Write-Host "$("-"*80)`n$("-"*80)"
     $jsonObjects.$Question = [int](
