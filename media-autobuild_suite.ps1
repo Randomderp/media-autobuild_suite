@@ -515,17 +515,14 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
     }
 }
 # EOQuestions
-Write-Host "$("-"*60)"
 if ($PSVersionTable.PSVersion.Major -ne 3) {
+    Write-Host "$("-"*60)"
     Write-Host "If you want to reuse this console do"
     Write-Host "`$env:Path = `$Global:TempPath"
     Write-Host "else you won't have your original path in this console until you close and reopen."
+    Write-Host "$("-"*60)"
 }
-Write-Host "If you use control+C at any time durring the script, make sure to run"
-Write-Host "Get-Job | Remove-Job -Force"
-Write-Host "$("-"*60)"
 Start-Sleep -Seconds 2
-# Temporarily store the Path
 $Global:TempPath = $env:Path
 $env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
@@ -538,28 +535,34 @@ $msysprefix = switch ([System.IntPtr]::Size) {
 if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Set-Location $build
     if (!(Test-Path $build\7za.exe)) {
-        Write-Host "$("-"*60)`n`n- Downloading Wget`n`n$("-"*60)"
-        $progressPreference = 'silentlyContinue'
-        if (Test-Connection -Quiet -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore) {
-            Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-        } elseif (Test-Connection -Quiet -ComputerName randomderp.com -Count 1 -InformationAction Ignore) {
-            Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
-        } else {
-            Write-Host "$("-"*60)`n"
-            Write-Host "Script to download necessary components failed.`n"
-            Write-Host "Download and extract this manually to inside $($build):"
-            Write-Host "https://i.fsbn.eu/pub/wget-pack.exe`n"
-            Write-Host "$("-"*60)"
-            Pause
-            exit
-        }
-        $progressPreference = 'Continue'
-        $stream = ([IO.StreamReader]$((Resolve-Path $build\wget-pack.exe).ProviderPath)).BaseStream
-        if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-            Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-        } else {
-            $stream.Close()
+        try {
+            (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore).ResponseTime
+            Write-Host "$("-"*60)`n`n- Downloading Wget`n`n$("-"*60)"
+            $progressPreference = 'silentlyContinue'
+            $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
+            $rdrpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
+            if ($fsbnping -and $rdrpping) {
+                if ($fsbnping -le $rdrpping) {
+                    Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+                } else {
+                    Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+                }
+            } elseif ($rdrpping) {
+                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+            } elseif ($fsbnping) {
+                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+            } else {
+                throw
+            }
+            $progressPreference = 'Continue'
+            $stream = ([IO.StreamReader]$((Resolve-Path $build\wget-pack.exe).ProviderPath)).BaseStream
+            if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+                Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+            } else {
+                throw
+            }
             Remove-Item $build\wget-pack.exe
+        } catch {
             Write-Host "$("-"*60)`n"
             Write-Host "Script to download necessary components failed.`n"
             Write-Host "Download and extract this manually to inside $($build):"
@@ -567,9 +570,11 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Write-Host "$("-"*60)"
             Pause
             exit
+        } finally {
+            $progressPreference = 'Continue'
+            $stream.Close()
         }
-        $stream.Close()
-        Remove-Item $build\wget-pack.exe
+
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
     try {
