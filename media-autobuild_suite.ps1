@@ -53,7 +53,7 @@ if ($PSScriptRoot -match " ") {
     Write-Host "Please move the suite directory closer to the root of your drive and maybe`n"
     Write-Host "rename the suite directory to a smaller name. Examples:`n"
     Write-Host "Avoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n"
-    Write-Host "Prefer: C:\media-autobuild_suite`n"
+    Write-Host "Prefer: C:\media-autobuild_suite or `n"
     Write-Host "Prefer: C:\ab-suite`n"
     pause
     exit
@@ -62,10 +62,9 @@ if ($PSScriptRoot -match " ") {
 }
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-# Set Build path
 New-Item -ItemType Directory -Force -Path $PSScriptRoot\build -ErrorAction Ignore | Out-Null
 $build = Resolve-Path $PSScriptRoot\build
-$json = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("$build\media-autobuild_suite.json")
+$json = "$build\media-autobuild_suite.json"
 
 # Set package variables
 $msyspackages = "asciidoc", "autoconf", "autoconf-archive", "autogen", "automake-wrapper", "bison", "diffstat", "dos2unix", "doxygen", "flex", "git", "gperf", "gyp-git", "help2man", "intltool", "itstool", "libtool", "make", "man-db", "mercurial", "mintty", "p7zip", "patch", "python", "ruby", "subversion", "texinfo", "unzip", "wget", "winpty", "xmlto", "zip"
@@ -122,6 +121,7 @@ $jsonObjects = [PSCustomObject]@{
     pack         = 0
     logging      = 0
     updateSuite  = 0
+    addpath      = 0
 }
 
 function Write-Questions ($Question) {
@@ -163,6 +163,7 @@ function Write-Questions ($Question) {
         pack {Write-Host "Pack compiled files?"}
         logging {Write-Host "Write logs of compilation commands?"}
         updateSuite {Write-Host "Create script to update suite files automatically?"}
+        addpath {Write-Host "Add bin-audio and bin-video to PATH?"}
     }
     switch -Regex ($Question) {
         arch {
@@ -307,6 +308,7 @@ function Write-Questions ($Question) {
             Write-Host "If you have made changes to the scripts, they will be reset but saved to"
             Write-Host "a .diff text file inside $build`n"
         }
+        addpath {Write-Host "Make sure to learn what the environment path is before saying yes."}
     }
     Write-Host "$("-"*80)`n$("-"*80)"
     $jsonObjects.$Question = [int](
@@ -678,7 +680,6 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             $progressPreference = 'Continue'
             $stream.Close()
         }
-
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
     try {
@@ -751,16 +752,10 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
 $fstab = Resolve-Path $msys2Path\etc\fstab
 function Write-Fstab {
     Write-Host "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
-    $(
-        Write-Output "none / cygdrive binary,posix=0,noacl,user 0 0`n"
-        Write-Output "$PSScriptRoot\ /trunk`n"
-        Write-Output "$PSScriptRoot\build\ /build`n"
-        Write-Output "$msys2Path\mingw32\ /mingw32`n"
-        Write-Output "$msys2Path\mingw64\ /mingw64`n"
-        if ($build32 -eq "yes") {Write-Output "$PSScriptRoot\local32\ /local32`n"}
-        if ($build64 -eq "yes") {Write-Output "$PSScriptRoot\local64\ /local64`n"}
-    ) | Out-File -NoNewline -Force $fstab
-
+    $fstabtext = "none / cygdrive binary,posix=0,noacl,user 0 0`n$PSScriptRoot\ /trunk`n$PSScriptRoot\build\ /build`n$msys2Path\mingw32\ /mingw32`n$msys2Path\mingw64\ /mingw64`n"
+    if ($build32 -eq "yes") {$fstabtext += "$PSScriptRoot\local32\ /local32`n"}
+    if ($build64 -eq "yes") {$fstabtext += "$PSScriptRoot\local64\ /local64`n"}
+    New-Item -Force -ItemType File -Path $fstab -Value $fstabtext
 }
 if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -notmatch $PSScriptRoot))) {Write-Fstab}
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
