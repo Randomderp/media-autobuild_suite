@@ -641,7 +641,6 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Set-Location $build
     if (!(Test-Path $build\7za.exe)) {
         try {
-            (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore).ResponseTime
             Write-Host "$("-"*60)`n`n- Downloading Wget`n`n$("-"*60)"
             $progressPreference = 'silentlyContinue'
             $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
