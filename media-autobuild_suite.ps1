@@ -252,9 +252,9 @@ function Write-Questions ($Question) {
             Write-host "for all backends except SChannel.`n"
         }
         cores {
-            Write-Host "Recommended: $(switch ((Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors) {
+            Write-Host "Recommended: $(switch ($env:NUMBER_OF_PROCESSORS) {
                         1 {1}
-                        Default {(Get-CimInstance -ClassName 'Win32_ComputerSystem').NumberOfLogicalProcessors / 2}
+                        Default {$env:NUMBER_OF_PROCESSORS / 2}
                     })`n"
         }
         "deleteSource|strip|logging" {
