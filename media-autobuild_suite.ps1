@@ -252,10 +252,12 @@ function Write-Questions ($Question) {
             Write-host "for all backends except SChannel.`n"
         }
         cores {
-            Write-Host "Recommended: $(switch ($env:NUMBER_OF_PROCESSORS) {
-                        1 {1}
-                        Default {$env:NUMBER_OF_PROCESSORS / 2}
-                    })`n"
+            Write-Host "Recommended: $(
+                switch ($env:NUMBER_OF_PROCESSORS) {
+                    1 {1}
+                    Default {$env:NUMBER_OF_PROCESSORS / 2}
+                }
+            )`n"
         }
         "deleteSource|strip|logging" {
             Write-host "1 = Yes [recommended]"
@@ -664,7 +666,6 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             } else {
                 throw
             }
-            Remove-Item $build\wget-pack.exe
         } catch {
             Write-Host "$("-"*60)`n"
             Write-Host "Script to download necessary components failed.`n"
@@ -674,8 +675,9 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Pause
             exit
         } finally {
-            $progressPreference = 'Continue'
             $stream.Close()
+            Remove-Item $build\wget-pack.exe
+            $progressPreference = 'Continue'
         }
     }
     Write-Host "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
@@ -719,7 +721,14 @@ function Write-BaseFolders ([int]$bit) {
 }
 if ($build64 -eq "yes") {Write-BaseFolders -bit 64}
 if ($build32 -eq "yes") {Write-BaseFolders -bit 32}
-
+$fstab = Resolve-Path $msys2Path\etc\fstab
+function Write-Fstab {
+    Write-Host "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
+    $fstabtext = "none / cygdrive binary,posix=0,noacl,user 0 0`n$PSScriptRoot\ /trunk`n$PSScriptRoot\build\ /build`n$msys2Path\mingw32\ /mingw32`n$msys2Path\mingw64\ /mingw64`n"
+    if ($build32 -eq "yes") {$fstabtext += "$PSScriptRoot\local32\ /local32`n"}
+    if ($build64 -eq "yes") {$fstabtext += "$PSScriptRoot\local64\ /local64`n"}
+    New-Item -Force -ItemType File -Path $fstab -Value $fstabtext
+}
 if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Set-Location $msys2Path
     if ($msys2 -eq "msys32") {
@@ -727,7 +736,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
     }
     Write-Output "$("-"*60)`n- make a first run`n$("-"*60)" | Tee-Object $build\firstrun.log
-    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', ''}
+    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', '' -replace '\x1b\[HJ]', ''}
     Write-Fstab
     Write-Output "$("-"*60)`nFirst update`n$("-"*60)" | Tee-Object $build\firstUpdate.log
     Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object -Append $build\firstUpdate.log
@@ -744,15 +753,6 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.IconLocation = "$msys2Path\msys2.ico"
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
-}
-
-$fstab = Resolve-Path $msys2Path\etc\fstab
-function Write-Fstab {
-    Write-Host "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
-    $fstabtext = "none / cygdrive binary,posix=0,noacl,user 0 0`n$PSScriptRoot\ /trunk`n$PSScriptRoot\build\ /build`n$msys2Path\mingw32\ /mingw32`n$msys2Path\mingw64\ /mingw64`n"
-    if ($build32 -eq "yes") {$fstabtext += "$PSScriptRoot\local32\ /local32`n"}
-    if ($build64 -eq "yes") {$fstabtext += "$PSScriptRoot\local64\ /local64`n"}
-    New-Item -Force -ItemType File -Path $fstab -Value $fstabtext
 }
 if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (((Select-String -Path $fstab -Pattern "trunk").Line.Split(' ')[0] -notmatch $PSScriptRoot))) {Write-Fstab}
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
