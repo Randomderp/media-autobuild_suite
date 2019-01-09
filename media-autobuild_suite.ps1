@@ -119,6 +119,8 @@ $jsonObjects = [PSCustomObject]@{
     pack         = 0
     logging      = 0
     updateSuite  = 0
+    #copybin     = 0
+    #installdir  = "$PSScriptRoot\local$($bit)\"
 }
 
 function Write-Questions ($Question) {
@@ -160,6 +162,8 @@ function Write-Questions ($Question) {
         pack {Write-Host "Pack compiled files?"}
         logging {Write-Host "Write logs of compilation commands?"}
         updateSuite {Write-Host "Create script to update suite files automatically?"}
+        copybin {Write-Host "Copy final binary files to another folder?"}
+        installdir {Write-Host "Where do you want to install the final programs?"}
     }
     switch -Regex ($Question) {
         arch {
@@ -265,6 +269,9 @@ function Write-Questions ($Question) {
             Write-host "1 = Yes"
             Write-host "2 = No [recommended]`n"
         }
+        installdir {
+            Write-Host "Enter a full path such as C:\"
+        }
         Default {
             Write-host "1 = Yes"
             Write-host "2 = No`n"
@@ -306,9 +313,10 @@ function Write-Questions ($Question) {
             Write-Host "If you have made changes to the scripts, they will be reset but saved to"
             Write-Host "a .diff text file inside $build`n"
         }
+        copybin {Write-Host "Will only copy *.exe within the bin-audio, bin-global, and bin-video."}
     }
     Write-Host "$("-"*80)`n$("-"*80)"
-    $jsonObjects.$Question = [int](
+    $jsonObjects.$Question = (
         Read-Host -Prompt $(
             switch ($Question) {
                 arch {"Build System: "}
@@ -330,6 +338,7 @@ function Write-Questions ($Question) {
                 pack {"Pack files: "}
                 logging {"Write logs: "}
                 updateSuite {"Create update script: "}
+                copybin {"Copy binary files: "}
                 Default {"Build $($Question): "}
             }
         )
@@ -350,17 +359,23 @@ if (Test-Path -Path $json) {
 
 # sytemVars
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
-    while (1..$(
-            switch -Regex ($a) {
-                "arch|ffmpegUpdate|mpv" {3}
-                "license2|ffmpegB2" {5}
-                "x2643|x2652|curl" {7}
-                ffmpegChoice {4}
-                cores {999}
-                Default {2}
-            }
-        ) -notcontains $jsonObjects.$a) {
-        Write-Questions -Question $a
+    if ($a -match "installdir") {
+        if ($jsonObjects.copybin -eq 1) {
+
+        }
+    } else {
+        while (1..$(
+                switch -Regex ($a) {
+                    "arch|ffmpegUpdate|mpv" {3}
+                    "license2|ffmpegB2" {5}
+                    "x2643|x2652|curl" {7}
+                    ffmpegChoice {4}
+                    cores {999}
+                    Default {2}
+                }
+            ) -notcontains $jsonObjects.$a) {
+            Write-Questions -Question $a
+        }
     }
 }
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
