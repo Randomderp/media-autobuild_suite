@@ -26,7 +26,7 @@
 
 <#
 .SYNOPSIS
-Suite
+Suite to build ffmpeg, mpv, and other programs on a windows machine.
 #>
 
 if ($PSVersionTable.PSVersion.Major -lt 3) {
@@ -38,9 +38,6 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
     exit
 }
 #requires -Version 3
-$Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
-$PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
-
 if ($PSScriptRoot -match " ") {
     Write-Host "$("-"*70)"
     Write-Host "You have probably run the script in a path with spaces.`n"
@@ -65,13 +62,55 @@ if ($PSScriptRoot -match " ") {
 } else {
     Set-Location $PSScriptRoot
 }
+#[ValidateSet()]
+param(
+    [string]$build = (Resolve-Path $PSScriptRoot\build).ProviderPath,
+    [string]$json = Write-Output "$build\media-autobuild_suite.json",
+    $arch,
+    $license,
+    $standalone,
+    $vpx2,
+    $aom,
+    $rav1e,
+    $dav1d,
+    $x2643,
+    $x2652,
+    $other265,
+    $vvc,
+    $flac,
+    $fdkaac,
+    $faac,
+    $mediainfo,
+    $soxB,
+    $ffmpegB2,
+    $ffmpegUpdate,
+    $ffmpegChoice,
+    $mp4box,
+    $rtmpdump,
+    $mplayer2,
+    $mpv,
+    $bmx,
+    $curl,
+    $ffmbc,
+    $cyanrip2,
+    $redshift,
+    $ripgrep,
+    $jq,
+    $cores,
+    $deleteSource,
+    $strip,
+    $pack,
+    $logging,
+    $updateSuite
+    #$copybin,
+    #$installdir  = "$PSScriptRoot\local$($bit)\"
+)
 
+$Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
+$PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 New-Item -ItemType Directory -Force -Path $PSScriptRoot\build -ErrorAction Ignore | Out-Null
-$build = Resolve-Path $PSScriptRoot\build
-$json = "$build\media-autobuild_suite.json"
 
-# Set package variables
 $msyspackages = "asciidoc", "autoconf", "autoconf-archive", "autogen", "automake-wrapper", "bison", "diffstat", "dos2unix", "doxygen", "flex", "git", "gperf", "gyp-git", "help2man", "intltool", "itstool", "libtool", "make", "man-db", "mercurial", "mintty", "p7zip", "patch", "python", "ruby", "subversion", "texinfo", "unzip", "wget", "winpty", "xmlto", "zip"
 $mingwpackages = "cmake", "dlfcn", "libpng", "gcc", "nasm", "pcre", "tools-git", "yasm", "ninja", "pkg-config", "meson"
 $ffmpeg_options_builtin = "--disable-autodetect", "amf", "bzlib", "cuda", "cuvid", "d3d11va", "dxva2", "iconv", "lzma", "nvenc", "schannel", "zlib", "sdl2", "--disable-debug", "ffnvcodec", "nvdec"
@@ -81,49 +120,18 @@ $ffmpeg_options_full = "chromaprint", "cuda-sdk", "decklink", "frei0r", "libbs2b
 $mpv_options_builtin = "#cplayer", "#manpage-build", "#lua", "#javascript", "#libass", "#libbluray", "#uchardet", "#rubberband", "#lcms2", "#libarchive", "#libavdevice", "#shaderc", "#crossc", "#d3d11", "#jpeg"
 $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
-$jsonObjects = [PSCustomObject]@{
-    msys2Arch    = [System.IntPtr]::Size / 4
-    arch         = 0
-    license2     = 0
-    standalone   = 0
-    vpx2         = 0
-    aom          = 0
-    rav1e        = 0
-    dav1d        = 0
-    x2643        = 0
-    x2652        = 0
-    other265     = 0
-    vvc          = 0
-    flac         = 0
-    fdkaac       = 0
-    faac         = 0
-    mediainfo    = 0
-    soxB         = 0
-    ffmpegB2     = 0
-    ffmpegUpdate = 0
-    ffmpegChoice = 0
-    mp4box       = 0
-    rtmpdump     = 0
-    mplayer2     = 0
-    mpv          = 0
-    bmx          = 0
-    curl         = 0
-    ffmbc        = 0
-    cyanrip2     = 0
-    redshift     = 0
-    ripgrep      = 0
-    jq           = 0
-    cores        = 0
-    deleteSource = 0
-    strip        = 0
-    pack         = 0
-    logging      = 0
-    updateSuite  = 0
-    #copybin     = 0
-    #installdir  = "$PSScriptRoot\local$($bit)\"
-}
 
-function Write-Questions ($Question) {
+if (Test-Path -Path $json) {
+    $jsonProperties = Get-Content $json | ConvertFrom-Json
+    foreach ($a in $jsonProperties.psobject.Properties.Name) {
+        if ($jsonProperties.$a -ne 0) {
+            $jsonObjects.$a = $jsonProperties.$a
+        }
+    }
+}
+$jsonObjects | ConvertTo-Json | Out-File $json
+
+function Write-Question ($Question) {
     Write-Host "$("-"*80)`n$("-"*80)`n"
     switch ($Question) {
         arch {Write-Host "Select the build target system:"}
@@ -163,7 +171,6 @@ function Write-Questions ($Question) {
         logging {Write-Host "Write logs of compilation commands?"}
         updateSuite {Write-Host "Create script to update suite files automatically?"}
         copybin {Write-Host "Copy final binary files to another folder?"}
-        installdir {Write-Host "Where do you want to install the final programs?"}
     }
     switch -Regex ($Question) {
         arch {
@@ -269,9 +276,6 @@ function Write-Questions ($Question) {
             Write-host "1 = Yes"
             Write-host "2 = No [recommended]`n"
         }
-        installdir {
-            Write-Host "Enter a full path such as C:\"
-        }
         Default {
             Write-host "1 = Yes"
             Write-host "2 = No`n"
@@ -316,7 +320,7 @@ function Write-Questions ($Question) {
         copybin {Write-Host "Will only copy *.exe within the bin-audio, bin-global, and bin-video."}
     }
     Write-Host "$("-"*80)`n$("-"*80)"
-    $jsonObjects.$Question = (
+    $jsonObjects.$Question = [int](
         Read-Host -Prompt $(
             switch ($Question) {
                 arch {"Build System: "}
@@ -346,22 +350,28 @@ function Write-Questions ($Question) {
     ConvertTo-Json -InputObject $jsonObjects | Out-File $json
 }
 
-if (Test-Path -Path $json) {
-    $jsonProperties = Get-Content $json | ConvertFrom-Json
-    foreach ($a in $jsonProperties.psobject.Properties.Name) {
-        if ($jsonProperties.$a -ne 0) {
-            $jsonObjects.$a = $jsonProperties.$a
-        }
-    }
-} else {
-    $jsonObjects | ConvertTo-Json | Out-File $json
-}
-
 # sytemVars
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
-    if ($a -match "installdir") {
-        if ($jsonObjects.copybin -eq 1) {
+    if ($a -match "copybin|installdir") {
+        if ($jsonObjects.ffmpegB2 -match "1|4") {
+            while (1..2 -notcontains $jsonObjects.copybin) {
+                Write-Question -Question "copybin"
+            }
+            if ($jsonObjects.copybin -eq 1) {
+                try {
+                    Write-Host "$("-"*80)`n$("-"*80)`n"
+                    Write-Host "Where do you want to install the final programs?"
+                    Write-Host "Enter a full path such as:"
+                    Write-Host "`"C:\test\`""
+                    while (!(Test-Path $jsonObjects.installdir)) {
+                        $jsonObjects.installdir = [System.IO.DirectoryInfo](Read-Host -Prompt "Path to final dir: ")
+                    }
+                } catch {
 
+                }
+            }
+        } else {
+            $jsonObjects.copybin = 2
         }
     } else {
         while (1..$(
@@ -374,7 +384,7 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                     Default {2}
                 }
             ) -notcontains $jsonObjects.$a) {
-            Write-Questions -Question $a
+            Write-Question -Question $a
         }
     }
 }
@@ -512,15 +522,12 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
             }
         }
         ffmpegChoice {
-            function Write-Option ([array]$inp) {
-                foreach ($opt in $inp) {
-                    if (($opt | Out-String).StartsWith("--")) {
-                        Write-Output $opt
-                    } elseif (($opt | Out-String).StartsWith("#--")) {
-                        Write-Output $opt
-                    } elseif (($opt | Out-String).StartsWith("#")) {
-                        $opta = ($opt | Out-String -NoNewline).Substring(1)
-                        Write-Output "#--enable-$opta"
+            function Write-Option ($inp) {
+                foreach ($opt in $inp.split(" ")) {
+                    if ($opt -match '^--|^#--') {
+                        Write-Output "$opt"
+                    } elseif ($opt.StartsWith("#")) {
+                        Write-Output "#--enable-$($opt.Substring(1))"
                     } else {
                         Write-Output "--enable-$opt"
                     }
@@ -532,14 +539,16 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                 1 {
                     $ffmpegChoice = "y"
                     if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
-                        Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'" | Out-File $ffmpegoptions
-                        Write-Option $ffmpeg_options_builtin | Out-File -Append $ffmpegoptions
-                        Write-Output "# Common options" | Out-File -Append $ffmpegoptions
-                        Write-Option $ffmpeg_options_basic | Out-File -Append $ffmpegoptions
-                        Write-Output "# Zeranoe" | Out-File -Append $ffmpegoptions
-                        Write-Option $ffmpeg_options_zeranoe | Out-File -Append $ffmpegoptions
-                        Write-Output "# Full" | Out-File -Append $ffmpegoptions
-                        Write-Option $ffmpeg_options_full | Out-File -Append $ffmpegoptions
+                        $(
+                            Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'"
+                            Write-Option $ffmpeg_options_builtin
+                            Write-Output "# Common options"
+                            Write-Option $ffmpeg_options_basic
+                            Write-Output "# Zeranoe"
+                            Write-Option $ffmpeg_options_zeranoe
+                            Write-Output "# Full"
+                            Write-Option $ffmpeg_options_full
+                        ) | Out-File $ffmpegoptions
                         Write-Host "$("-"*80)"
                         Write-Host "File with default FFmpeg options has been created in $ffmpegoptions`n"
                         Write-Host "Edit it now or leave it unedited to compile according to defaults."
@@ -547,12 +556,14 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                         Pause
                     }
                     if (!(Test-Path -PathType Leaf $mpvoptions)) {
-                        Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them." | Out-File $mpvoptions
-                        Write-Option $mpv_options_builtin | Out-File -Append $mpvoptions
-                        Write-Output "`n# Common options or overriden defaults" | Out-File -Append $mpvoptions
-                        Write-Option $mpv_options_basic | Out-File -Append $mpvoptions
-                        Write-Output "`n# Full" | Out-File -Append $mpvoptions
-                        Write-Option $mpv_options_full | Out-File -Append $mpvoptions
+                        $(
+                            Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them."
+                            Write-Option $mpv_options_builtin
+                            Write-Output "`n# Common options or overriden defaults"
+                            Write-Option $mpv_options_basic
+                            Write-Output "`n# Full"
+                            Write-Option $mpv_options_full
+                        ) | Out-File $mpvoptions
                         Write-Host "$("-"*80)"
                         Write-Host "File with default mpv options has been created in $mpvoptions`n"
                         Write-Host "Edit it now or leave it unedited to compile according to defaults."
