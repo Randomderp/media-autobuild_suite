@@ -712,23 +712,44 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         try {
             Write-Host "$("-"*60)`n`n- Downloading Wget`n`n$("-"*60)"
             $progressPreference = 'silentlyContinue'
-            $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
-            $rdrpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
-            if ($fsbnping -and $rdrpping) {
-                if ($fsbnping -le $rdrpping) {
-                    Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-                } else {
-                    Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+            switch ($PSVersionTable.PSVersion.Major) {
+                6 {
+                    $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
+                    $rdpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
                 }
-            } elseif ($rdrpping) {
-                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
-            } elseif ($fsbnping) {
-                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-            } else {
-                throw
+                Default {
+                    $fsbnping = switch ((Test-Connection -ComputerName i.fsbn.eu -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) {
+                        0 {$null}
+                        Default {$_}
+                    }
+                    $rdpping = switch ((Test-Connection -ComputerName randomderp.com -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) {
+                        0 {$null}
+                        Default {$_}
+                    }
+                }
+            }
+            switch ($fsbnping) {
+                $true {
+                    switch ($rdpping) {
+                        $true {
+                            if ($fsbnping -le $rdpping) {
+                                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
+                            } else {
+                                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
+                            }
+                        }
+                        $false {Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"}
+                    }
+                }
+                $false {
+                    switch ($rdpping) {
+                        $true {Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"}
+                        $false {throw}
+                    }
+                }
             }
             $progressPreference = 'Continue'
-            $stream = ([IO.StreamReader]$((Resolve-Path $build\wget-pack.exe).ProviderPath)).BaseStream
+            $stream = [System.IO.File]::OpenRead("$build\wget-pack.exe")
             if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
                 Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
             } else {
@@ -743,8 +764,8 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Pause
             exit
         } finally {
-            $stream.Close()
-            Remove-Item $build\wget-pack.exe
+            $stream.Close() 2>$null
+            Remove-Item $build\wget-pack.exe 2>$null
             $progressPreference = 'Continue'
         }
     }
@@ -770,7 +791,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Write-Host "- http://repo.msys2.org/distrib/"
         Write-Host "- and copy the uncompressed folder to:"
         Write-Host "- $build"
-        Write-Host "- and start the batch script again!`n"
+        Write-Host "- and start the script again!`n"
         Write-Host "$("-"*60)"
         pause
         exit
