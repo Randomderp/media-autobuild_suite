@@ -673,10 +673,6 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             $progressPreference = 'silentlyContinue'
             switch ($PSVersionTable.PSVersion.Major) {
                 6 {
-                    $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
-                    $rdpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
-                }
-                Default {
                     $fsbnping = switch ((Test-Connection -ComputerName i.fsbn.eu -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) {
                         0 {$null}
                         Default {$_}
@@ -685,6 +681,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
                         0 {$null}
                         Default {$_}
                     }
+                }
+                Default {
+                    $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
+                    $rdpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
                 }
             }
             switch ($fsbnping) {
