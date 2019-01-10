@@ -99,11 +99,11 @@ $jsonObjects = [PSCustomObject]@{
     soxB         = 0
     ffmpegB2     = 0
     ffmpegUpdate = 0
+    mpv          = 0
     ffmpegChoice = 0
     mp4box       = 0
     rtmpdump     = 0
     mplayer2     = 0
-    mpv          = 0
     bmx          = 0
     curl         = 0
     ffmbc        = 0
@@ -350,6 +350,58 @@ function Write-Question ($Question) {
         )
     )
     ConvertTo-Json -InputObject $jsonObjects | Out-File $json
+    if ($jsonObjects.ffmpegChoice -eq 1) {
+        function Write-Option ($inp) {
+            foreach ($opt in $inp.split(" ")) {
+                if ($opt -match '^--|^#--') {
+                    Write-Output "$opt"
+                } elseif ($opt.StartsWith("#")) {
+                    Write-Output "#--enable-$($opt.Substring(1))"
+                } else {
+                    Write-Output "--enable-$opt"
+                }
+            }
+        }
+        if (($jsonObjects.ffmpegB2 -ne 2) -or ($jsonObjects.cyanrip2 -eq 1)) {
+            $ffmpegoptions = "$build\ffmpeg_options.txt"
+            if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
+                $(
+                    Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'"
+                    Write-Option $ffmpeg_options_builtin
+                    Write-Output "# Common options"
+                    Write-Option $ffmpeg_options_basic
+                    Write-Output "# Zeranoe"
+                    Write-Option $ffmpeg_options_zeranoe
+                    Write-Output "# Full"
+                    Write-Option $ffmpeg_options_full
+                ) | Out-File $ffmpegoptions
+                Write-Host "$("-"*80)"
+                Write-Host "File with default FFmpeg options has been created in $ffmpegoptions`n"
+                Write-Host "Edit it now or leave it unedited to compile according to defaults."
+                Write-Host "$("-"*80)"
+                Pause
+            }
+        }
+        if ($jsonObjects.mpv -eq 1) {
+            $mpvoptions = "$build\mpv_options.txt"
+            if (!(Test-Path -PathType Leaf $mpvoptions)) {
+                $(
+                    Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them."
+                    Write-Option $mpv_options_builtin
+                    Write-Output "`n# Common options or overriden defaults"
+                    Write-Option $mpv_options_basic
+                    Write-Output "`n# Full"
+                    Write-Option $mpv_options_full
+                ) | Out-File $mpvoptions
+                Write-Host "$("-"*80)"
+                Write-Host "File with default mpv options has been created in $mpvoptions`n"
+                Write-Host "Edit it now or leave it unedited to compile according to defaults."
+                Write-Host "$("-"*80)"
+                Pause
+            }
+        }
+
+    }
 }
 
 # sytemVars
@@ -524,65 +576,11 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
             }
         }
         ffmpegChoice {
-            function Write-Option ($inp) {
-                foreach ($opt in $inp.split(" ")) {
-                    if ($opt -match '^--|^#--') {
-                        Write-Output "$opt"
-                    } elseif ($opt.StartsWith("#")) {
-                        Write-Output "#--enable-$($opt.Substring(1))"
-                    } else {
-                        Write-Output "--enable-$opt"
-                    }
-                }
-            }
-            $ffmpegoptions = "$build\ffmpeg_options.txt"
-            $mpvoptions = "$build\mpv_options.txt"
-            switch ($jsonObjects.ffmpegChoice) {
-                1 {
-                    $ffmpegChoice = "y"
-                    if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
-                        $(
-                            Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'"
-                            Write-Option $ffmpeg_options_builtin
-                            Write-Output "# Common options"
-                            Write-Option $ffmpeg_options_basic
-                            Write-Output "# Zeranoe"
-                            Write-Option $ffmpeg_options_zeranoe
-                            Write-Output "# Full"
-                            Write-Option $ffmpeg_options_full
-                        ) | Out-File $ffmpegoptions
-                        Write-Host "$("-"*80)"
-                        Write-Host "File with default FFmpeg options has been created in $ffmpegoptions`n"
-                        Write-Host "Edit it now or leave it unedited to compile according to defaults."
-                        Write-Host "$("-"*80)"
-                        Pause
-                    }
-                    if (!(Test-Path -PathType Leaf $mpvoptions)) {
-                        $(
-                            Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them."
-                            Write-Option $mpv_options_builtin
-                            Write-Output "`n# Common options or overriden defaults"
-                            Write-Option $mpv_options_basic
-                            Write-Output "`n# Full"
-                            Write-Option $mpv_options_full
-                        ) | Out-File $mpvoptions
-                        Write-Host "$("-"*80)"
-                        Write-Host "File with default mpv options has been created in $mpvoptions`n"
-                        Write-Host "Edit it now or leave it unedited to compile according to defaults."
-                        Write-Host "$("-"*80)"
-                        Pause
-                    }
-
-                }
-                2 {
-                    $ffmpegChoice = "n"
-                }
-                3 {
-                    $ffmpegChoice = "z"
-                }
-                4 {
-                    $ffmpegChoice = "f"
-                }
+            $ffmpegChoice = switch ($jsonObjects.ffmpegChoice) {
+                1 {"y"}
+                2 {"n"}
+                3 {"z"}
+                4 {"f"}
             }
         }
         mpv {
@@ -620,16 +618,6 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                 }
                 7 {
                     "mbedtls"
-                }
-            }
-        }
-        cyanrip2 {
-            $cyanrip2 = switch ($jsonObjects.cyanrip2) {
-                1 {
-                    "yes"
-                }
-                2 {
-                    "no"
                 }
             }
         }
