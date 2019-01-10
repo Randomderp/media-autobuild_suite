@@ -120,6 +120,48 @@ $ffmpeg_options_full = "chromaprint", "cuda-sdk", "decklink", "frei0r", "libbs2b
 $mpv_options_builtin = "#cplayer", "#manpage-build", "#lua", "#javascript", "#libass", "#libbluray", "#uchardet", "#rubberband", "#lcms2", "#libarchive", "#libavdevice", "#shaderc", "#crossc", "#d3d11", "#jpeg"
 $mpv_options_basic = "--disable-debug-build", "--lua=luajit"
 $mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
+$jsonObjects = [PSCustomObject]@{
+    msys2Arch    = [System.IntPtr]::Size / 4
+    arch         = 0
+    license2     = 0
+    standalone   = 0
+    vpx2         = 0
+    aom          = 0
+    rav1e        = 0
+    dav1d        = 0
+    x2643        = 0
+    x2652        = 0
+    other265     = 0
+    vvc          = 0
+    flac         = 0
+    fdkaac       = 0
+    faac         = 0
+    mediainfo    = 0
+    soxB         = 0
+    ffmpegB2     = 0
+    ffmpegUpdate = 0
+    ffmpegChoice = 0
+    mp4box       = 0
+    rtmpdump     = 0
+    mplayer2     = 0
+    mpv          = 0
+    bmx          = 0
+    curl         = 0
+    ffmbc        = 0
+    cyanrip2     = 0
+    redshift     = 0
+    ripgrep      = 0
+    jq           = 0
+    dssim        = 0
+    cores        = 0
+    deleteSource = 0
+    strip        = 0
+    pack         = 0
+    logging      = 0
+    updateSuite  = 0
+    #copybin     = 0
+    #installdir  = "$PSScriptRoot\local$($bit)\"
+}
 
 if (Test-Path -Path $json) {
     $jsonProperties = Get-Content $json | ConvertFrom-Json
@@ -164,6 +206,7 @@ function Write-Question ($Question) {
         redshift {Write-Host "Build redshift [f.lux FOSS clone]?"}
         ripgrep {Write-Host "Build ripgrep [faster grep in Rust]?"}
         jq {Write-Host "Build jq (CLI JSON processor)?"}
+        dssim {Write-Host "Build dssim (multiscale SSIM in Rust)?"}
         cores {Write-Host "Number of CPU Cores/Threads for compiling:`n[it is non-recommended to use all cores/threads!]`n"}
         deleteSource {Write-Host "Delete versioned source folders after compile is done?"}
         strip {Write-Host "Strip compiled files binaries?"}
@@ -892,5 +935,5 @@ $MSYSTEM = switch ($build32) {
 Set-Location $PSScriptRoot
 $Host.UI.RawUI.WindowTitle = "MABSbat"
 Remove-Item -Force $build\compile.log -ErrorAction Ignore
-Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash -l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq"  | Tee-Object $build\compile.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', '' -replace '\x1b\]0;', ''}
+Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash -l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"  | Tee-Object $build\compile.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', '' -replace '\x1b\]0;', ''}
 $env:Path = $Global:TempPath
