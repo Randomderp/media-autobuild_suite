@@ -64,46 +64,8 @@ if ($PSScriptRoot -match " ") {
 }
 #[ValidateSet()]
 param(
-    [string]$build = (Resolve-Path $PSScriptRoot\build).ProviderPath,
-    [string]$json = Write-Output "$build\media-autobuild_suite.json",
-    $arch,
-    $license,
-    $standalone,
-    $vpx2,
-    $aom,
-    $rav1e,
-    $dav1d,
-    $x2643,
-    $x2652,
-    $other265,
-    $vvc,
-    $flac,
-    $fdkaac,
-    $faac,
-    $mediainfo,
-    $soxB,
-    $ffmpegB2,
-    $ffmpegUpdate,
-    $ffmpegChoice,
-    $mp4box,
-    $rtmpdump,
-    $mplayer2,
-    $mpv,
-    $bmx,
-    $curl,
-    $ffmbc,
-    $cyanrip2,
-    $redshift,
-    $ripgrep,
-    $jq,
-    $cores,
-    $deleteSource,
-    $strip,
-    $pack,
-    $logging,
-    $updateSuite
-    #$copybin,
-    #$installdir  = "$PSScriptRoot\local$($bit)\"
+    $build = (Resolve-Path $PSScriptRoot\build).ProviderPath,
+    $json = "$build\media-autobuild_suite.json"
 )
 
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
