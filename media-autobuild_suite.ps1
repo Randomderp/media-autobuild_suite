@@ -62,12 +62,9 @@ if ($PSScriptRoot -match " ") {
 } else {
     Set-Location $PSScriptRoot
 }
-#[ValidateSet()]
-param(
-    $build = (Resolve-Path $PSScriptRoot\build).ProviderPath,
-    $json = "$build\media-autobuild_suite.json"
-)
 
+$build = "$PSScriptRoot\build"
+$json = "$build\media-autobuild_suite.json"
 $Host.UI.RawUI.WindowTitle = "media-autobuild_suite"
 $PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
