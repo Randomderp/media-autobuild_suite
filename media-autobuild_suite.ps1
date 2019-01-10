@@ -687,9 +687,9 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
                     $rdpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
                 }
             }
-            switch ($fsbnping) {
+            switch (Test-Path variable:fsbnping) {
                 $true {
-                    switch ($rdpping) {
+                    switch (Test-Path variable:rdpping) {
                         $true {
                             if ($fsbnping -le $rdpping) {
                                 Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
@@ -701,7 +701,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
                     }
                 }
                 $false {
-                    switch ($rdpping) {
+                    switch (Test-Path variable:$rdpping) {
                         $true {Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"}
                         $false {throw}
                     }
