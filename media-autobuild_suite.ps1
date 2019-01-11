@@ -793,7 +793,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.WorkingDirectory = "$msys2Path"
     $link.Save()
 }
-if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or (Select-String -Path $fstab -Pattern "trunk" -notmatch "$PSScriptRoot")) {Write-Fstab}
+if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or ((Select-String -Path $fstab -Pattern "trunk") -NotMatch ($PSScriptRoot -replace "\\", "\\"))) {Write-Fstab}
 if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
     Write-Host "$("-"*60)`nForcefully signing abrepo key`n$("-"*60)"
     Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
