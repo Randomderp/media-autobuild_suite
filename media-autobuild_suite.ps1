@@ -784,8 +784,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"  | Tee-Object -Append $build\criticalUpdate.log
     Write-Output "$("-"*60)`nsecond update`n$("-"*60)" | Tee-Object $build\secondUpdate.log
     Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"  | Tee-Object  -Append $build\secondUpdate.log
-    $wshShell = New-Object -ComObject WScript.Shell
-    $link = $wshShell.CreateShortcut("$PSScriptRoot\mintty.lnk")
+    $link = $(New-Object -ComObject WScript.Shell).CreateShortcut("$PSScriptRoot\mintty.lnk")
     $link.TargetPath = "$msys2Path\msys2_shell.cmd"
     $link.Arguments = "-full-path -mingw"
     $link.Description = "msys2 shell console"
