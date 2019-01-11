@@ -119,7 +119,7 @@ $jsonObjects = [PSCustomObject]@{
     logging      = 0
     updateSuite  = 0
     #copybin     = 0
-    #installdir  = "$PSScriptRoot\local$($bit)\"
+    #installdir  = $null
 }
 
 if (Test-Path -Path $json) {
@@ -404,25 +404,27 @@ function Write-Question ($Question) {
     }
 }
 
-# sytemVars
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
     if ($a -match "copybin|installdir") {
         if ($jsonObjects.ffmpegB2 -match "1|4") {
-            while (1..2 -notcontains $jsonObjects.copybin) {
-                Write-Question -Question "copybin"
-            }
+            while (1..2 -notcontains $jsonObjects.copybin) {Write-Question "copybin"}
             if ($jsonObjects.copybin -eq 1) {
-                try {
-                    Write-Host "$("-"*80)`n$("-"*80)`n"
-                    Write-Host "Where do you want to install the final programs?"
-                    Write-Host "Enter a full path such as:"
-                    Write-Host "`"C:\test\`""
-                    while (!(Test-Path $jsonObjects.installdir)) {
-                        $jsonObjects.installdir = [System.IO.DirectoryInfo](Read-Host -Prompt "Path to final dir: ")
+                while (!(Test-Path variable:installdir)) {
+                    try {
+                        $installdir = Resolve-Path $jsonObjects.installdir
+                    } catch {
+                        do {
+                            Write-Host "$("-"*80)`n$("-"*80)`n"
+                            Write-Host "Where do you want to install the final programs?"
+                            Write-Host "Enter a full path such as:"
+                            Write-Host "`"C:\test\`""
+                            Write-Host "$("-"*80)`n$("-"*80)"
+                            $jsonObjects.installdir = (Read-Host -Prompt "Path to final dir: ").Replace('"', '')
+                            New-Item -Force -ItemType Directory -Path $jsonObjects.installdir | Out-Null
+                        } while (!(Test-Path $jsonObjects.installdir))
                     }
-                } catch {
-
                 }
+                ConvertTo-Json -InputObject $jsonObjects | Out-File $json
             }
         } else {
             $jsonObjects.copybin = 2
@@ -645,7 +647,7 @@ if ($PSVersionTable.PSVersion.Major -ne 3) {
 }
 Start-Sleep -Seconds 2
 $Global:TempPath = $env:Path
-$env:Path = $($Global:TempPath.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
+$env:Path = $($env:Path.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
 $bash = "$msys2Path\usr\bin\bash.exe"
 $msysprefix = switch ([System.IntPtr]::Size) {
