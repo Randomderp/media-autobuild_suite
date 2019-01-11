@@ -26,7 +26,28 @@
 
 <#
 .SYNOPSIS
-Suite to build ffmpeg, mpv, and other programs on a windows machine.
+
+Builds packages for use with a Windows system.
+
+.Description
+
+Builds ffmpeg, aom, bmx, curl, cyanrip, dav1d, dssim, faac, fdk-aac, fmbc, flac, haisrt tools, jq, kvazaar, lame, libaacs, libbdplus, mediainfo, mp4box, mplayer, mpv, opus, redshift, rtmpdump, rav1e, ripgrep, sox, speex, tesseract, vorbis, vpx, vvc, webp, x264, x265, and xvid.
+
+.INPUTS
+
+None. You cannot pipe anything.
+
+.OUTPUTS
+
+Probably some kind of string, idk at this point.
+
+.EXAMPLE
+
+C:\media-autobuild_suite> .\media-autobuild_suite.ps1
+
+.LINK
+https://github.com/jb-alvarado/media-autobuild_suite
+
 #>
 
 if ($PSVersionTable.PSVersion.Major -lt 3) {
