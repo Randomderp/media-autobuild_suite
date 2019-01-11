@@ -775,15 +775,23 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Write-Host "$("-"*60)`n`nrebase $msys2 system`n`n$("-"*60)"
         Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
     }
-    Write-Output "$("-"*60)`n- make a first run`n$("-"*60)" | Tee-Object $build\firstrun.log
-    Invoke-Expression "$bash -lc exit" | Tee-Object -Append $build\firstrun.log | ForEach-Object {$_ -replace '\x1b\[[0-9;]*m', '' -replace '\x1b\[[HJ]', ''}
+    Start-Transcript -Force -Path $build\firstrun.log
+    Write-Output "$("-"*60)`n- make a first run`n$("-"*60)"
+    Invoke-Expression "$bash -lc exit"
+    Stop-Transcript
     Write-Fstab
-    Write-Output "$("-"*60)`nFirst update`n$("-"*60)" | Tee-Object $build\firstUpdate.log
-    Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"  | Tee-Object -Append $build\firstUpdate.log
-    Write-Output "$("-"*60)`ncritical updates`n$("-"*60)" | Tee-Object $build\criticalUpdate.log
-    Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"  | Tee-Object -Append $build\criticalUpdate.log
-    Write-Output "$("-"*60)`nsecond update`n$("-"*60)" | Tee-Object $build\secondUpdate.log
-    Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"  | Tee-Object  -Append $build\secondUpdate.log
+    Start-Transcript -Force -Path $build\firstUpdate.log
+    Write-Output "$("-"*60)`nFirst update`n$("-"*60)"
+    Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"
+    Stop-Transcript
+    Start-Transcript -Force -Path $build\criticalUpdate.log
+    Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
+    Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"
+    Stop-Transcript
+    Start-Transcript -Force -Path $build\secondUpdate.log
+    Write-Output "$("-"*60)`nsecond update`n$("-"*60)"
+    Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
+    Stop-Transcript
     $link = $(New-Object -ComObject WScript.Shell).CreateShortcut("$PSScriptRoot\mintty.lnk")
     $link.TargetPath = "$msys2Path\msys2_shell.cmd"
     $link.Arguments = "-full-path -mingw"
@@ -812,7 +820,9 @@ Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
 foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
 
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
-    Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)" | Tee-Object $build\pacman.log
+    Start-Transcript -Force -Path $build\pacman.log
+    Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)"
+    Stop-Transcript
     Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
     New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String) | Out-Null
     (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
