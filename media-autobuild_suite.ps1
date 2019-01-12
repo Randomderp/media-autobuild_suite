@@ -476,127 +476,61 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
         }
         arch {
             $build32 = switch ($jsonObjects.arch) {
-                1 {
-                    "yes"
-                }
-                2 {
-                    "yes"
-                }
-                Default {
-                    "no"
-                }
+                1 {"yes"}
+                2 {"yes"}
+                Default {"no"}
             }
             $build64 = switch ($jsonObjects.arch) {
-                1 {
-                    "yes"
-                }
-                3 {
-                    "yes"
-                }
-                Default {
-                    "no"
-                }
+                1 {"yes"}
+                3 {"yes"}
+                Default {"no"}
             }
         }
         license2 {
             $license2 = switch ($jsonObjects.license2) {
-                1 {
-                    "nonfree"
-                }
-                2 {
-                    "gplv3"
-                }
-                3 {
-                    "gpl"
-                }
-                4 {
-                    "lgplv3"
-                }
-                5 {
-                    "lgpl"
-                }
+                1 {"nonfree"}
+                2 {"gplv3"}
+                3 {"gpl"}
+                4 {"lgplv3"}
+                5 {"lgpl"}
             }
         }
         x2643 {
             $x2643 = switch ($jsonObjects.x2643) {
-                1 {
-                    "yes"
-                }
-                2 {
-                    "no"
-                }
-                3 {
-                    "high"
-                }
-                4 {
-                    "full"
-                }
-                5 {
-                    "shared"
-                }
-                6 {
-                    "fullv"
-                }
-                7 {
-                    "o8"
-                }
+                1 {"yes"}
+                2 {"no"}
+                3 {"high"}
+                4 {"full"}
+                5 {"shared"}
+                6 {"fullv"}
+                7 {"o8"}
             }
         }
         x2652 {
             $x2652 = switch ($jsonObjects.x2652) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "o10"
-                }
-                4 {
-                    "o8"
-                }
-                5 {
-                    "s"
-                }
-                6 {
-                    "d"
-                }
-                7 {
-                    "o12"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"o10"}
+                4 {"o8"}
+                5 {"s"}
+                6 {"d"}
+                7 {"o12"}
             }
         }
         ffmpegB2 {
             $ffmpeg = switch ($jsonObjects.ffmpegB2) {
-                1 {
-                    "static"
-                }
-                2 {
-                    "no"
-                }
-                3 {
-                    "shared"
-                }
-                4 {
-                    "both"
-                }
-                5 {
-                    "sharedlibs"
-                }
+                1 {"static"}
+                2 {"no"}
+                3 {"shared"}
+                4 {"both"}
+                5 {"sharedlibs"}
             }
         }
         ffmpegUpdate {
             $ffmpegUpdate = switch ($jsonObjects.ffmpegUpdate) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "onlyFFmpeg"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"onlyFFmpeg"}
             }
         }
         ffmpegChoice {
@@ -609,51 +543,27 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
         }
         mpv {
             $mpv = switch ($jsonObjects.mpv) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "z"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"z"}
             }
         }
         curl {
             $curl = switch ($jsonObjects.curl) {
-                1 {
-                    "y"
-                }
-                2 {
-                    "n"
-                }
-                3 {
-                    "schannel"
-                }
-                4 {
-                    "gnutls"
-                }
-                5 {
-                    "openssl"
-                }
-                6 {
-                    "libressl"
-                }
-                7 {
-                    "mbedtls"
-                }
+                1 {"y"}
+                2 {"n"}
+                3 {"schannel"}
+                4 {"gnutls"}
+                5 {"openssl"}
+                6 {"libressl"}
+                7 {"mbedtls"}
             }
         }
         Default {
             Set-Variable -Name $($a) -Value $(
                 switch ($jsonObjects.$a) {
-                    1 {
-                        "y"
-                    }
-                    2 {
-                        "n"
-                    }
+                    1 {"y"}
+                    2 {"n"}
                 }
             )
         }
