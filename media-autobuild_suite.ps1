@@ -719,12 +719,15 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
                     }
                 }
             }
-            $progressPreference = 'Continue'
-            $stream = [System.IO.File]::OpenRead("$build\wget-pack.exe")
-            if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-            } else {
-                throw
+            try {
+                $stream = [System.IO.File]::OpenRead("$build\wget-pack.exe")
+                if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+                    Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+                } else {
+                    throw
+                }
+            } finally {
+                $stream.Close() 2>$null
             }
         } catch {
             Write-Host "$("-"*60)`n"
@@ -735,7 +738,6 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Pause
             exit
         } finally {
-            $stream.Close() 2>$null
             Remove-Item $build\wget-pack.exe 2>$null
             $progressPreference = 'Continue'
         }
@@ -837,19 +839,13 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     $link.Save()
 }
 if (!(Test-Path $fstab) -or (($build32 -eq "yes") -and !(Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "yes") -and !(Select-String -Pattern "local64" -Path $fstab)) -or (($build32 -eq "no") -and (Select-String -Pattern "local32" -Path $fstab)) -or (($build64 -eq "no") -and (Select-String -Pattern "local64" -Path $fstab)) -or !(Select-String -Path $fstab -Pattern "trunk") -or ((Select-String -Path $fstab -Pattern "trunk") -NotMatch ($PSScriptRoot -replace "\\", "\\"))) {Write-Fstab}
-if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'" )) {
+if (!(Invoke-Expression "$bash -lc 'pacman-key -f EFD16019AE4FF531'")) {
     Write-Host "$("-"*60)`nForcefully signing abrepo key`n$("-"*60)"
     Invoke-Expression "$bash -lc 'pacman-key -r EFD16019AE4FF531; pacman-key --lsign EFD16019AE4FF531'"
 }
-if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {
-    New-Item -ItemType File -Force -Path $msys2Path\home\$env:UserName\.minttyrc -Value "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-Null
-}
-if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {
-    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.hgrc -Value "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold" | Out-Null
-}
-if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig)) {
-    New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.gitconfig -Value "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple" | Out-Null
-}
+if (!(Test-Path "$msys2Path\home\$env:UserName\.minttyrc")) {New-Item -ItemType File -Force -Path $msys2Path\home\$env:UserName\.minttyrc -Value "Locale=en_US`nCharset=UTF-8`nFont=Consolas`nColumns=120`nRows=30" | Out-Null}
+if (!(Test-Path "$msys2Path\home\$env:UserName\.hgrc")) {New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.hgrc -Value "[ui]`nusername = $env:UserName`nverbose = True`neditor = vim`n`n[web]`ncacerts=/usr/ssl/cert.pem`n`n[extensions]`ncolor =`n`n[color]`nstatus.modified = magenta bold`nstatus.added = green bold`nstatus.removed = red bold`nstatus.deleted = cyan bold`nstatus.unknown = blue bold`nstatus.ignored = black bold" | Out-Null}
+if (!(Test-Path $msys2Path\home\$env:UserName\.gitconfig)) {New-Item -Force -ItemType File -Path $msys2Path\home\$env:UserName\.gitconfig -Value "[user]`nname = $env:UserName`nemail = $env:UserName@$env:COMPUTERNAME`n`n[color]`nui = true`n`n[core]`neditor = vim`nautocrlf =`n`n[merge]`ntool = vimdiff`n`n[push]`ndefault = simple" | Out-Null}
 
 Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
 foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
@@ -860,13 +856,12 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String) | Out-Null
         (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
-        Invoke-Expression "$bash -lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
+        Invoke-Expression "$bash -lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp && pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
         Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
     }
 }
 
 if (!(Test-Path $msys2Path\usr\ssl\cert.pem)) {Write-Log -logfile $build\cert.log -ScriptBlock {Invoke-Expression "$bash -lc update-ca-trust"}}
-
 if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {New-Item -Force -ItemType File -Path $msys2Path\usr\bin\hg.bat -Value "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%" | Out-Null}
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk -ErrorAction Ignore
@@ -883,7 +878,6 @@ function Get-Compiler ([int]$bit) {
             if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
                 Get-Compiler -bit $bit
             } else {
-                Stop-Transcript
                 exit
             }
         } else {
@@ -912,8 +906,8 @@ if ($jsonObjects.updateSuite -eq 1) {
 }
 
 # update
-Invoke-Expression "$bash -lc 'pacman -D --asdep --noconfirm --ask=20 bzip2 findutils getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
-Write-Log -logfile $build\update.log -ScriptBlock {Invoke-Expression "$bash -lc 'echo no | /build/media-suite_update.sh --build32=$build32 --build64=$build64'"}
+#Invoke-Expression "$bash -lc 'pacman -D --asdep --noconfirm --ask=20 bzip2 findutils getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
+Write-Log -logfile $build\update.log -ScriptBlock {Invoke-Expression "$bash -l /build/media-suite_update.sh --build32=$build32 --build64=$build64"}
 if (Test-Path $build\update_core) {
     Write-Log -logfile $build\update_core.log -ScriptBlock {
         Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
@@ -937,9 +931,9 @@ if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\pr
 if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {New-Item -Force -ItemType File -Path $msys2Path\etc\profile.d\Zab-suite.sh -Value "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-Null}
 
 # compileLocals
-$MSYSTEM = switch ($build32) {
-    yes {"MINGW32"}
-    Default {"MINGW64"}
+$MSYSTEM = switch ($build64) {
+    yes {"MINGW64"}
+    Default {"MINGW32"}
 }
 Set-Location $PSScriptRoot
 $Host.UI.RawUI.WindowTitle = "MABSbat"
