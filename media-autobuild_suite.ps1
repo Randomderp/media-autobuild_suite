@@ -821,7 +821,7 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"
 
     }
-    Write-Log -logfile $build\criticalUpdate.loglog -ScriptBlock {
+    Write-Log -logfile $build\criticalUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
         Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"
     }
