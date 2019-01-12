@@ -728,16 +728,16 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     Write-Fstab
     Write-Log -logfile $build\firstUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`nFirst update`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps pacman-mirrors ca-certificates'"
+        Invoke-Expression "$bash -lc 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors'"
 
     }
     Write-Log -logfile $build\criticalUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps '"
+        Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime'"
     }
     Write-Log -logfile $build\secondUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`nsecond update`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --ask=20 --noconfirm --asdeps'"
+        Invoke-Expression "$bash -lc 'pacman -Syu --needed --ask=20 --noconfirm --asdeps'"
     }
     $link = $(New-Object -ComObject WScript.Shell).CreateShortcut("$PSScriptRoot\mintty.lnk")
     $link.TargetPath = "$msys2Path\msys2_shell.cmd"
