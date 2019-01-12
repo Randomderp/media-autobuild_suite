@@ -906,7 +906,7 @@ if ($jsonObjects.updateSuite -eq 1) {
 }
 
 # update
-#Invoke-Expression "$bash -lc 'pacman -D --asdep --noconfirm --ask=20 bzip2 findutils getent gzip inetutils lndir msys2-keyring msys2-launcher-git pactoys-git pax-git tftp-hpa tzcode which'"
+#Invoke-Expression "$bash -lc 'pacman -Qqe | grep -q sed && pacman -Qqg base | pacman -D --asdeps - && pacman -D --asexplicit mintty flex'" | Out-Null
 Write-Log -logfile $build\update.log -ScriptBlock {Invoke-Expression "$bash -l /build/media-suite_update.sh --build32=$build32 --build64=$build64"}
 if (Test-Path $build\update_core) {
     Write-Log -logfile $build\update_core.log -ScriptBlock {
