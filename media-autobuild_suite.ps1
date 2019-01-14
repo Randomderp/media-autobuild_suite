@@ -699,7 +699,12 @@ function Write-Fstab {
 function Write-Log ($logfile, [ScriptBlock]$ScriptBlock) {
     try {
         Start-Transcript -Force -Path $logfile | Out-Null
-        &$ScriptBlock
+        if ($Script) {
+            &$ScriptBlock
+        }
+        if ($commandbash) {
+            &$bash @($BashCommand.Split(' '))
+        }
     } catch {
         Write-Output "Stopping logging and exiting"
     } finally {
@@ -807,7 +812,26 @@ if ($jsonObjects.updateSuite -eq 1) {
 }
 
 # update
-Write-Log -logfile $build\update.log -ScriptBlock {Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-l /build/media-suite_update.sh --build32=$build32 --build64=$build64"}
+try {
+    switch ($PSVersionTable.PSVersion.Major) {
+        6 {if (((Test-Connection -ComputerName pool.sks-keyservers.net -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) -eq 0) {throw}}
+        Default {if (!(Test-Connection -ComputerName pool.sks-keyservers.net -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime) {throw}}
+    }
+}
+catch {
+    Write-Output "Can't connect to sks-keyservers, exiting"
+    exit
+}
+try {
+    switch ($PSVersionTable.PSVersion.Major) {
+        6 {if (((Test-Connection -ComputerName github.com -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) -eq 0) {throw}}
+        Default {if (!(Test-Connection -ComputerName github.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime) {throw}}
+    }
+} catch {
+    Write-Output "Can't connect to github, exiting"
+    exit
+}
+Write-Log -logfile $build\update.log -commandbash -BashCommand "-l /build/media-suite_update.sh --build32=$build32 --build64=$build64"
 if (Test-Path $build\update_core) {
     Write-Log -logfile $build\update_core.log -ScriptBlock {
         Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
