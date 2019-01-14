@@ -632,7 +632,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             try {
                 $stream = [System.IO.File]::OpenRead("$build\wget-pack.exe")
                 if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                    Start-Process -NoNewWindow -Wait -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+                    Start-Process -Wait -NoNewWindow -FilePath $build\wget-pack.exe  -WorkingDirectory $build
                 } else {
                     throw
                 }
@@ -660,10 +660,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Invoke-WebRequest -OutFile $env:TEMP\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
         }
         Copy-Item $env:TEMP\msys2-base.tar.xz $build\msys2-base.tar.xz
-        Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar.xz"
+        Start-Process -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz" -WorkingDirectory $build
         if (-not $? -or $LASTEXITCODE -ne 0) {throw}
         Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-        Invoke-Expression "$build\7za.exe x -aoa msys2-base.tar"
+        Start-Process -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar" -WorkingDirectory $build
         if (-not $? -or $LASTEXITCODE -ne 0) {throw}
         Remove-Item $build\msys2-base.tar
         Move-Item -Path $build\msys64 $PSScriptRoot
@@ -723,21 +723,21 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
     }
     Write-Log -logfile $build\firstrun.log -ScriptBlock {
         Write-Output "$("-"*60)`n- make a first run`n$("-"*60)"
-        Invoke-Expression "$bash -lc exit"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc exit"
     }
     Write-Fstab
     Write-Log -logfile $build\firstUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`nFirst update`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors'"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors'"
 
     }
     Write-Log -logfile $build\criticalUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime'"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime'"
     }
     Write-Log -logfile $build\secondUpdate.log -ScriptBlock {
         Write-Output "$("-"*60)`nsecond update`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -Syu --needed --ask=20 --noconfirm --asdeps'"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Syu --needed --ask=20 --noconfirm --asdeps'"
     }
     $link = $(New-Object -ComObject WScript.Shell).CreateShortcut("$PSScriptRoot\mintty.lnk")
     $link.TargetPath = "$msys2Path\msys2_shell.cmd"
@@ -762,12 +762,12 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
         Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
         New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String) | Out-Null
         (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
-        Invoke-Expression "$bash -lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp && pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp && pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
         Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
     }
 }
 
-if (!(Test-Path $msys2Path\usr\ssl\cert.pem)) {Write-Log -logfile $build\cert.log -ScriptBlock {Invoke-Expression "$bash -lc update-ca-trust"}}
+if (!(Test-Path $msys2Path\usr\ssl\cert.pem)) {Write-Log -logfile $build\cert.log -ScriptBlock {Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc update-ca-trust"}}
 if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {New-Item -Force -ItemType File -Path $msys2Path\usr\bin\hg.bat -Value "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%" | Out-Null}
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk -ErrorAction Ignore
@@ -778,7 +778,7 @@ function Get-Compiler ([int]$bit) {
         Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)"
         New-Item -Force -ItemType File -Path $msys2Path\etc\pac-mingw.temp -Value $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String) | Out-Null
         (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
-        Invoke-Expression "$bash -lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
         if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
             Write-Output "$("-"*60)`nMinGW$($bit) GCC compiler isn't installed; maybe the download didn't work`nDo you want to try it again?`n$("-"*60)"
             if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
@@ -812,18 +812,17 @@ if ($jsonObjects.updateSuite -eq 1) {
 }
 
 # update
-#Invoke-Expression "$bash -lc 'pacman -Qqe | grep -q sed && pacman -Qqg base | pacman -D --asdeps - && pacman -D --asexplicit mintty flex'" | Out-Null
-Write-Log -logfile $build\update.log -ScriptBlock {Invoke-Expression "$bash -l /build/media-suite_update.sh --build32=$build32 --build64=$build64"}
+Write-Log -logfile $build\update.log -ScriptBlock {Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-l /build/media-suite_update.sh --build32=$build32 --build64=$build64"}
 if (Test-Path $build\update_core) {
     Write-Log -logfile $build\update_core.log -ScriptBlock {
         Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
-        Invoke-Expression "$bash -lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
+        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
         Remove-Item $build\update_core
     }
 }
 if ($msys2 -eq "msys32") {
     Write-Output "$("-"*60)`nsecond rebase $msys2 system`n$("-"*60)"
-    Start-Process -NoNewWindow -Wait -FilePath $msys2Path\autorebase.bat
+    Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
 }
 
 function Write-Profile ([int]$bit) {
@@ -844,6 +843,6 @@ $MSYSTEM = switch ($build64) {
 Set-Location $PSScriptRoot
 $Host.UI.RawUI.WindowTitle = "MABSbat"
 Write-Log -logfile $build\compile.log -ScriptBlock {
-    Invoke-Expression "$msys2Path\usr\bin\env MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash -l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
+    Start-Process -Wait -NoNewWindow -FilePath $msys2Path\usr\bin\env -ArgumentList "MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash -l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
 }
 $env:Path = $Global:TempPath
