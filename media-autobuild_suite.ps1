@@ -629,15 +629,10 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
                     }
                 }
             }
-            try {
-                $stream = [System.IO.File]::OpenRead("$build\wget-pack.exe")
-                if (( -Join ([Security.Cryptography.HashAlgorithm]::Create("SHA256").ComputeHash($stream) | ForEach-Object {"{0:x2}" -f $_})) -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                    Start-Process -Wait -NoNewWindow -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-                } else {
-                    throw
-                }
-            } finally {
-                $stream.Close() 2>$null
+            if ((Get-FileHash -Path $build\wget-pack.exe).Hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
+                Start-Process -Wait -NoNewWindow -FilePath $build\wget-pack.exe  -WorkingDirectory $build
+            } else {
+                throw
             }
         } catch {
             Write-Output "$("-"*60)`n"
