@@ -399,11 +399,11 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
 				try {
 					$installdir = Resolve-Path $(New-Item -Force -ItemType Directory -Path $jsonObjects.installdir)
 				} catch {
-					while (!(Get-Variable installdir -ErrorAction Ignore)) {
-						Write-Output "$("-"*80)`n$("-"*80)`n`nWhere do you want to install the final programs?`nEnter a full path such as:`n`"C:\test\`"`n$("-"*80)`n$("-"*80)"
+					do {
+						Write-Output "$("-"*80)`n$("-"*80)`n`nWhere do you want to install the final programs?`nChoose an empty directory else you will have a lot of random files within that folder`nEnter a full path such as:`n`"C:\test\`"`n`n$("-"*80)`n$("-"*80)"
 						$jsonObjects.installdir = [string]((Read-Host -Prompt "Path to final dir: ").Replace('"', ''))
 						$installdir = Resolve-Path $(New-Item -Force -ItemType Directory -Path $jsonObjects.installdir)
-					}
+					} while (!(Test-Path -IsValid -Path $jsonObjects.installdir))
 				}
 				ConvertTo-Json -InputObject $jsonObjects | Out-File $json
 			}
@@ -509,16 +509,19 @@ $fstab = Resolve-Path $msys2Path\etc\fstab
 $bash = (Resolve-Path $msys2Path\usr\bin\bash.exe).ProviderPath
 # createFolders
 function Write-BaseFolders ([int]$bit) {
-	Write-Output "$("-"*60)`ncreating $bit-bit install folders`n$("-"*60)"
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\bin -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\etc -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\include -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig -ErrorAction Ignore | Out-Null
-	New-Item -ItemType Directory $PSScriptRoot\local$bit\share -ErrorAction Ignore | Out-Null
+	if (!(Test-Path -Path $PSScriptRoot\local$bit\bin-global -PathType Container)) {
+		Write-Output "$("-"*60)`ncreating $bit-bit install folders`n$("-"*60)"
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\bin -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\etc -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\include -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig -ErrorAction Ignore | Out-Null
+		New-Item -ItemType Directory $PSScriptRoot\local$bit\share -ErrorAction Ignore | Out-Null
+	}
 }
+
 function Write-Fstab {
 	Write-Output "$("-"*60)`n`n- write fstab mount file`n`n$("-"*60)"
 	$fstabtext = "none / cygdrive binary,posix=0,noacl,user 0 0`n$PSScriptRoot\ /trunk`n$PSScriptRoot\build\ /build`n$msys2Path\mingw32\ /mingw32`n$msys2Path\mingw64\ /mingw64`n"
@@ -605,12 +608,13 @@ if (($build64 -eq "yes") -and !(Test-Path $msys2Path\mingw64\bin\gcc.exe)) {Get-
 Write-Output "$("-"*60)`nupdate autobuild suite`n$("-"*60)"
 "compile", "helper", "update" | ForEach-Object {if (!(Test-Path $build\media-suite_$($_).sh)) {Invoke-WebRequest -OutFile $build\media-suite_$($_).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($_).sh"}}
 
-if ($jsonObjects.updateSuite -eq 1) {
+$updatescript = $(
+	Write-Output "#!/bin/bash`n`n# Run this file by dragging it to mintty shortcut.`n# Be sure the suite is not running before using it!`n`nupdate=yes`n"
+	Get-Content $build\media-suite_update.sh | Select-Object -Index ($((Select-String -Path $build\media-suite_update.sh -Pattern "start suite update").LineNumber)..$((Select-String -Path $build\media-suite_update.sh -Pattern "end suite update").LineNumber)) | ForEach-Object {$_ + "`n"}
+) | Out-String -NoNewline
+if (($jsonObjects.updateSuite -eq 1) -and ((Get-FileHash -Path $PSScriptRoot\update_suite.sh -ErrorAction Ignore).Hash -ne (Get-FileHash -InputStream ([IO.memorystream]::new([text.encoding]::utf8.getbytes($updatescript))))).hash) {
 	Write-Output "$("-"*60)`nCreating suite update file...`n`nRun this file by dragging it to mintty before the next time you run`nthe suite and before reporting an issue.`n`nIt needs to be run separately and with the suite not running!`n$("-"*60)"
-	$(
-		Write-Output "#!/bin/bash`n`n# Run this file by dragging it to mintty shortcut.`n# Be sure the suite is not running before using it!`n`nupdate=yes`n"
-		Get-Content $build\media-suite_update.sh | Select-Object -Index ($((Select-String -Path $build\media-suite_update.sh -Pattern "start suite update").LineNumber)..$((Select-String -Path $build\media-suite_update.sh -Pattern "end suite update").LineNumber)) | ForEach-Object {$_ + "`n"}
-	) | Out-File -NoNewline -Force $PSScriptRoot\update_suite.sh
+	New-Item -Path $PSScriptRoot\update_suite.sh -ItemType File -Value $updatescript
 }
 
 # update
@@ -664,7 +668,7 @@ Write-Log -logfile $build\compile.log -commandbash -BashCommand "-l /build/media
 
 if ($copybin -eq "y") {
 	$bits = switch ($build64) {
-		"y" {"64"}
+		"yes" {"64"}
 		default {"32"}
 	}
 	Copy-Item -Force -Filter *.exe -Recurse -Path $PSScriptRoot\local$bits -Destination $installdir
