@@ -420,8 +420,6 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
 }
 # EOQuestions
 if ($PSVersionTable.PSVersion.Major -ne 4) {Write-Output "$("-"*60)`nIf you want to reuse this console do`n`$env:Path = [System.Environment]::GetEnvironmentVariable(`"Path`", `"Machine`") + `";`" + [System.Environment]::GetEnvironmentVariable(`"Path`", `"User`")`n$("-"*60)"}
-Start-Sleep -Seconds 2
-$Global:TempPath = $env:Path
 $msys2Path = "$PSScriptRoot\$msys2"
 $env:Path = $($env:Path.Split(';') -match "NVIDIA|Windows" -join ';') + ";$msys2Path\usr\bin"
 $msysprefix = switch ([System.IntPtr]::Size) {
