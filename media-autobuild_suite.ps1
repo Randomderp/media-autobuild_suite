@@ -124,8 +124,8 @@ $jsonObjects = [PSCustomObject]@{
     pack         = 0
     logging      = 0
     updateSuite  = 0
-    #copybin     = 0
-    #installdir  = $null
+    copybin      = 0
+    installdir   = $null
 }
 
 if (Test-Path -Path $json) {
@@ -190,14 +190,7 @@ function Write-Question ($Question) {
         ffmpegChoice {Write-Output "1 = Yes`n2 = No (Light build)`n3 = No (Mimic Zeranoe)`n4 = No (All available external libs)`n`nAvoid the last two unless you're really want useless libraries you'll never use.`nJust because you can include a shitty codec no one uses doesn't mean you should.`n`nIf you select yes, we will create files with the default options`nwe use with FFmpeg and mpv. You can remove any that you don't need or prefix`nthem with #`n"}
         mpv {Write-Output "1 = Yes`n2 = No`n3 = compile with Vapoursynth, if installed [see Warning]`n`nNote: when built with shared-only FFmpeg, mpv is also shared.`nNote: Requires at least Windows Vista.`nWarning: the third option isn't completely static. There's no way to include`na library dependant on Python statically. All users of the compiled binary`nwill need VapourSynth installed using the official package to even open mpv!`n"}
         curl {Write-Output "1 = Yes [same backend as FFmpeg's]`n2 = No`n3 = SChannel backend`n4 = GnuTLS backend`n5 = OpenSSL backend`n6 = LibreSSL backend`n7 = mbedTLS backend`n`nA curl-ca-bundle.crt will be created to be used as trusted certificate store`nfor all backends except SChannel.`n"}
-        cores {
-            Write-Output "Recommended: $(
-                switch ($env:NUMBER_OF_PROCESSORS) {
-                    1 {1}
-                    Default {$_ / 2}
-                }
-            )`n"
-        }
+        cores {Write-Output "Recommended: $(switch ([int]($env:NUMBER_OF_PROCESSORS / 2)) {0 {1} Default {$_}})`n"}
         "deleteSource|strip|logging" {Write-Output "1 = Yes [recommended]`n2 = No`n"}
         pack {Write-Output "1 = Yes`n2 = No [recommended]`n"}
         Default {Write-Output "1 = Yes`n2 = No`n"}
@@ -213,7 +206,7 @@ function Write-Question ($Question) {
         pack {Write-Output "Attention: Some security applications may detect packed binaries as malware.`nIncreases delay on runtime during which files need to be unpacked.`nMakes binaries smaller at a big time cost after compiling and on runtime.`nIf distributing the files, consider packing them with 7-zip instead.`n"}
         logging {Write-Output "Note: Setting this to yes will also hide output from these commands.`nOn successful compilation, these logs are deleted since they aren't needed.`n"}
         updateSuite {Write-Output "If you have made changes to the scripts, they will be reset but saved to`na .diff text file inside $build`n"}
-        copybin {Write-Output "Will only copy *.exe within the bin-audio, bin-global, and bin-video."}
+        copybin {Write-Output "Will only copy *.exe within the local64|local32(Pref 64 bit)."}
     }
     Write-Output "$("-"*80)`n$("-"*80)"
     $jsonObjects.$Question = [int](
@@ -293,27 +286,7 @@ function Write-Question ($Question) {
 }
 
 foreach ($a in $jsonObjects.psobject.Properties.Name) {
-    if ($a -match "copybin|installdir") {
-        if ($jsonObjects.ffmpegB2 -match "1|4") {
-            while (1..2 -notcontains $jsonObjects.copybin) {Write-Question "copybin"}
-            if ($jsonObjects.copybin -eq 1) {
-                while (!(Test-Path variable:installdir)) {
-                    try {
-                        $installdir = Resolve-Path $jsonObjects.installdir
-                    } catch {
-                        do {
-                            Write-Output "$("-"*80)`n$("-"*80)`n`nWhere do you want to install the final programs?`nEnter a full path such as:`n`"C:\test\`"`n$("-"*80)`n$("-"*80)"
-                            $jsonObjects.installdir = (Read-Host -Prompt "Path to final dir: ").Replace('"', '')
-                            New-Item -Force -ItemType Directory -Path $jsonObjects.installdir | Out-Null
-                        } while (!(Test-Path $jsonObjects.installdir))
-                    }
-                }
-                ConvertTo-Json -InputObject $jsonObjects | Out-File $json
-            }
-        } else {
-            $jsonObjects.copybin = 2
-        }
-    } else {
+    if ($a -NotMatch "installdir") {
         while (1..$(
                 switch -Regex ($a) {
                     "arch|ffmpegUpdate|mpv" {3}
@@ -419,6 +392,20 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                 5 {"openssl"}
                 6 {"libressl"}
                 7 {"mbedtls"}
+            }
+        }
+        installdir {
+            if ($jsonObjects.copybin -eq 1) {
+                try {
+                    $installdir = Resolve-Path $(New-Item -Force -ItemType Directory -Path $jsonObjects.installdir)
+                } catch {
+                    while (!(Get-Variable installdir -ErrorAction Ignore)) {
+                        Write-Output "$("-"*80)`n$("-"*80)`n`nWhere do you want to install the final programs?`nEnter a full path such as:`n`"C:\test\`"`n$("-"*80)`n$("-"*80)"
+                        $jsonObjects.installdir = [string]((Read-Host -Prompt "Path to final dir: ").Replace('"', ''))
+                        $installdir = Resolve-Path $(New-Item -Force -ItemType Directory -Path $jsonObjects.installdir)
+                    }
+                }
+                ConvertTo-Json -InputObject $jsonObjects | Out-File $json
             }
         }
         Default {
@@ -676,4 +663,12 @@ $env:MSYSTEM = switch ($build64) {
 }
 $env:MSYS2_PATH_TYPE = "inherit"
 Write-Log -logfile $build\compile.log -commandbash -BashCommand "-l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
+
+if ($copybin -eq "y") {
+    $bits = switch ($build64) {
+        "y" {"64"}
+        default {"32"}
+    }
+    Copy-Item -Force -Filter *.exe -Recurse -Path $PSScriptRoot\local$bits -Destination $installdir
+}
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
