@@ -51,33 +51,17 @@ https://github.com/jb-alvarado/media-autobuild_suite
 #>
 
 if ($PSVersionTable.PSVersion.Major -lt 4) {
-    Write-Output "Your Powershell version is too low!"
-    Write-Output "Please update your version either through an OS upgrade"
-    Write-Output "or download the latest version for your system from"
-    Write-Output "https://github.com/PowerShell/PowerShell"
+    Write-Output "Your Powershell version is too low!`nPlease update your version either through an OS upgrade`nor download the latest version for your system from`nhttps://github.com/PowerShell/PowerShell"
     Pause
     exit
 }
 #requires -Version 4
 if ($PSScriptRoot -match " ") {
-    Write-Output "$("-"*70)"
-    Write-Output "You have probably run the script in a path with spaces.`n"
-    Write-Output "This is not supported.`n"
-    Write-Output "Please move the script to use a path without spaces. Example:`n"
-    Write-Output "Incorrect: C:\build suite\`n"
-    Write-Output "Correct:   C:\build_suite\`n"
+    Write-Output "$("-"*70)`nYou have probably run the script in a path with spaces.`n`nThis is not supported.`n`nPlease move the script to use a path without spaces. Example:`n`nIncorrect: C:\build suite\`n`nCorrect:   C:\build_suite\`n"
     Pause
     exit
 } elseif ($PSScriptRoot.Length -gt 60) {
-    Write-Output "$("-"*70)"
-    Write-Output "The total filepath to the suite seems too large (larger than 60 characters):`n"
-    Write-Output "$PSScriptRoot`n"
-    Write-Output "Some packages might fail building because of it.`n"
-    Write-Output "Please move the suite directory closer to the root of your drive and maybe`n"
-    Write-Output "rename the suite directory to a smaller name. Examples:`n"
-    Write-Output "Avoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n"
-    Write-Output "Prefer: C:\media-autobuild_suite or `n"
-    Write-Output "Prefer: C:\ab-suite`n"
+    Write-Output "$("-"*70)`nThe total filepath to the suite seems too large (larger than 60 characters):`n`n$PSScriptRoot`n`nSome packages might fail building because of it.`n`nPlease move the suite directory closer to the root of your drive and maybe`n`nrename the suite directory to a smaller name. Examples:`n`nAvoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n`nPrefer: C:\media-autobuild_suite or `n`nPrefer: C:\ab-suite`n"
     pause
     exit
 } else {
@@ -197,150 +181,38 @@ function Write-Question ($Question) {
         copybin {Write-Output "Copy final binary files to another folder?"}
     }
     switch -Regex ($Question) {
-        arch {
-            Write-Output "1 = both [32 bit and 64 bit]"
-            Write-Output "2 = 32 bit build system"
-            Write-Output "3 = 64 bit build system`n"
-        }
-        license2 {
-            Write-Output "1 = Non-free [unredistributable, but can include anything]"
-            Write-Output "2 = GPLv3 [disables OpenSSL and FDK-AAC]"
-            Write-Output "3 = GPLv2.1 [Same disables as GPLv3 with addition of gmp, opencore codecs]"
-            Write-Output "4 = LGPLv3 [Disables x264, x265, XviD, GPL filters, etc."
-            Write-Output "   but reenables OpenSSL/FDK-AAC]"
-            Write-Output "5 = LGPLv2.1 [same disables as LGPLv3 + GPLv2.1]`n"
-            Write-Output "If building for yourself, it's OK to choose non-free."
-            Write-Output "If building to redistribute online, choose GPL or LGPL."
-            Write-Output "If building to include in a GPLv2.1 binary, choose LGPLv2.1 or GPLv2.1."
-            Write-Output "If you want to use FFmpeg together with closed source software, choose LGPL"
-            Write-Output "and follow instructions in https://www.ffmpeg.org/legal.html`n"
-            Write-Output "OpenSSL and FDK-AAC have licenses incompatible with GPL but compatible"
-            Write-Output "with LGPL, so they won't be disabled automatically if you choose LGPL.`n"
-        }
-        x2643 {
-            Write-Output "1 = Lib/binary with 8 and 10-bit"
-            Write-Output "2 = No"
-            Write-Output "3 = Lib/binary with only 10-bit"
-            Write-Output "4 = Lib/binary with 8 and 10-bit, and libavformat and ffms2"
-            Write-Output "5 = Shared lib/binary with 8 and 10-bit"
-            Write-Output "6 = Same as 4 with video codecs only ^(can reduce size by ~3MB^)"
-            Write-Output "7 = Lib/binary with only 8-bit`n"
-        }
-        x2652 {
-            Write-Output "1 = Lib/binary with Main, Main10 and Main12"
-            Write-Output "2 = No"
-            Write-Output "3 = Lib/binary with Main10 only"
-            Write-Output "4 = Lib/binary with Main only"
-            Write-Output "5 = Lib/binary with Main, shared libs with Main10 and Main12"
-            Write-Output "6 = Same as 1 with XP support and non-XP compatible x265-numa.exe"
-            Write-Output "7 = Lib/binary with Main12 only`n"
-        }
-        ffmpegB2 {
-            Write-Output "1 = Yes [static] [recommended]"
-            Write-Output "2 = No"
-            Write-Output "3 = Shared"
-            Write-Output "4 = Both static and shared [shared goes to an isolated directory]"
-            Write-Output "5 = Shared-only with some shared libs (libass, freetype and fribidi)`n"
-            Write-Output "Note: Option 5 differs from 3 in that libass, freetype and fribidi are"
-            Write-Output "compiled shared so they take less space. This one isn't tested a lot and"
-            Write-Output "will fail with fontconfig enabled.`n"
-        }
-        ffmpegUpdate {
-            Write-Output "1 = Yes"
-            Write-Output "2 = No"
-            Write-Output "3 = Only build FFmpeg/mpv and missing dependencies`n"
-            Write-Output "FFmpeg is updated a lot so you only need to select this if you"
-            Write-Output "absolutely need updated external libraries in FFmpeg.`n"
-        }
-        ffmpegChoice {
-            Write-Output "1 = Yes"
-            Write-Output "2 = No (Light build)"
-            Write-Output "3 = No (Mimic Zeranoe)"
-            Write-Output "4 = No (All available external libs)`n"
-            Write-Output "Avoid the last two unless you're really want useless libraries you'll never use."
-            Write-Output "Just because you can include a shitty codec no one uses doesn't mean you should.`n"
-            Write-Output "If you select yes, we will create files with the default options"
-            Write-Output "we use with FFmpeg and mpv. You can remove any that you don't need or prefix"
-            Write-Output "them with #`n"
-        }
-        mpv {
-            Write-Output "1 = Yes"
-            Write-Output "2 = No"
-            Write-Output "3 = compile with Vapoursynth, if installed [see Warning]`n"
-            Write-Output "Note: when built with shared-only FFmpeg, mpv is also shared."
-            Write-Output "Note: Requires at least Windows Vista."
-            Write-Output "Warning: the third option isn't completely static. There's no way to include"
-            Write-Output "a library dependant on Python statically. All users of the compiled binary"
-            Write-Output "will need VapourSynth installed using the official package to even open mpv!`n"
-        }
-        curl {
-            Write-Output "1 = Yes [same backend as FFmpeg's]"
-            Write-Output "2 = No"
-            Write-Output "3 = SChannel backend"
-            Write-Output "4 = GnuTLS backend"
-            Write-Output "5 = OpenSSL backend"
-            Write-Output "6 = LibreSSL backend"
-            Write-Output "7 = mbedTLS backend`n"
-            Write-Output "A curl-ca-bundle.crt will be created to be used as trusted certificate store"
-            Write-Output "for all backends except SChannel.`n"
-        }
+        arch {Write-Output "1 = both [32 bit and 64 bit]`n2 = 32 bit build system`n3 = 64 bit build system`n"}
+        license2 {Write-Output "1 = Non-free [unredistributable, but can include anything]`n2 = GPLv3 [disables OpenSSL and FDK-AAC]`n3 = GPLv2.1 [Same disables as GPLv3 with addition of gmp, opencore codecs]`n4 = LGPLv3 [Disables x264, x265, XviD, GPL filters, etc.`n   but reenables OpenSSL/FDK-AAC]`n5 = LGPLv2.1 [same disables as LGPLv3 + GPLv2.1]`n`nIf building for yourself, it's OK to choose non-free.`nIf building to redistribute online, choose GPL or LGPL.`nIf building to include in a GPLv2.1 binary, choose LGPLv2.1 or GPLv2.1.`nIf you want to use FFmpeg together with closed source software, choose LGPL`nand follow instructions in https://www.ffmpeg.org/legal.html`n`nOpenSSL and FDK-AAC have licenses incompatible with GPL but compatible`nwith LGPL, so they won't be disabled automatically if you choose LGPL.`n"}
+        x2643 {Write-Output "1 = Lib/binary with 8 and 10-bit`n2 = No`n3 = Lib/binary with only 10-bit`n4 = Lib/binary with 8 and 10-bit, and libavformat and ffms2`n5 = Shared lib/binary with 8 and 10-bit`n6 = Same as 4 with video codecs only (can reduce size by ~3MB)`n7 = Lib/binary with only 8-bit`n"}
+        x2652 {Write-Output "1 = Lib/binary with Main, Main10 and Main12`n2 = No`n3 = Lib/binary with Main10 only`n4 = Lib/binary with Main only`n5 = Lib/binary with Main, shared libs with Main10 and Main12`n6 = Same as 1 with XP support and non-XP compatible x265-numa.exe`n7 = Lib/binary with Main12 only`n"}
+        ffmpegB2 {Write-Output "1 = Yes [static] [recommended]`n2 = No`n3 = Shared`n4 = Both static and shared [shared goes to an isolated directory]`n5 = Shared-only with some shared libs (libass, freetype and fribidi)`n`nNote: Option 5 differs from 3 in that libass, freetype and fribidi are`ncompiled shared so they take less space. This one isn't tested a lot and`nwill fail with fontconfig enabled.`n"}
+        ffmpegUpdate {Write-Output "1 = Yes`n2 = No`n3 = Only build FFmpeg/mpv and missing dependencies`n`nFFmpeg is updated a lot so you only need to select this if you`nabsolutely need updated external libraries in FFmpeg.`n"}
+        ffmpegChoice {Write-Output "1 = Yes`n2 = No (Light build)`n3 = No (Mimic Zeranoe)`n4 = No (All available external libs)`n`nAvoid the last two unless you're really want useless libraries you'll never use.`nJust because you can include a shitty codec no one uses doesn't mean you should.`n`nIf you select yes, we will create files with the default options`nwe use with FFmpeg and mpv. You can remove any that you don't need or prefix`nthem with #`n"}
+        mpv {Write-Output "1 = Yes`n2 = No`n3 = compile with Vapoursynth, if installed [see Warning]`n`nNote: when built with shared-only FFmpeg, mpv is also shared.`nNote: Requires at least Windows Vista.`nWarning: the third option isn't completely static. There's no way to include`na library dependant on Python statically. All users of the compiled binary`nwill need VapourSynth installed using the official package to even open mpv!`n"}
+        curl {Write-Output "1 = Yes [same backend as FFmpeg's]`n2 = No`n3 = SChannel backend`n4 = GnuTLS backend`n5 = OpenSSL backend`n6 = LibreSSL backend`n7 = mbedTLS backend`n`nA curl-ca-bundle.crt will be created to be used as trusted certificate store`nfor all backends except SChannel.`n"}
         cores {
             Write-Output "Recommended: $(
                 switch ($env:NUMBER_OF_PROCESSORS) {
                     1 {1}
-                    Default {$env:NUMBER_OF_PROCESSORS / 2}
+                    Default {$_ / 2}
                 }
             )`n"
         }
-        "deleteSource|strip|logging" {
-            Write-Output "1 = Yes [recommended]"
-            Write-Output "2 = No`n"
-        }
-        pack {
-            Write-Output "1 = Yes"
-            Write-Output "2 = No [recommended]`n"
-        }
-        Default {
-            Write-Output "1 = Yes"
-            Write-Output "2 = No`n"
-        }
+        "deleteSource|strip|logging" {Write-Output "1 = Yes [recommended]`n2 = No`n"}
+        pack {Write-Output "1 = Yes`n2 = No [recommended]`n"}
+        Default {Write-Output "1 = Yes`n2 = No`n"}
     }
     switch -Regex ($Question) {
         "vpx|aom|x2652" {Write-Output "Binaries being built depends on 'standalone=y'`n"}
         "dav1d|x2643" {Write-Output "Binaries being built depends on 'standalone=y' and are always static.`n"}
-        fdkaac {
-            Write-Output "Note: FFmpeg's aac encoder is no longer experimental and considered equal or"
-            Write-Output "better in quality from 96kbps and above. It still doesn't support AAC-HE/HEv2"
-            Write-Output "so if you need that or want better quality at lower bitrates than 96kbps,"
-            Write-Output "use FDK-AAC.`n"
-        }
-        mplayer2 {
-            Write-Output "Don't bother opening issues about this if it breaks, I don't fucking care"
-            Write-Output "about ancient unmaintained shit code. One more issue open about this that"
-            Write-Output "isn't the suite's fault and mplayer goes fucking out.`n"
-        }
-        ffmbc {
-            Write-Output "Note: this is a fork of FFmpeg 0.10. As such, it's very likely to fail"
-            Write-Output "to build, work, might burn your computer, kill your children, like mplayer."
-            Write-Output "Only enable it if you absolutely need it. If it breaks, complain first to"
-            Write-Output "the author in #ffmbc in Freenode IRC.`n"
-        }
+        fdkaac {Write-Output "Note: FFmpeg's aac encoder is no longer experimental and considered equal or`nbetter in quality from 96kbps and above. It still doesn't support AAC-HE/HEv2`nso if you need that or want better quality at lower bitrates than 96kbps,`nuse FDK-AAC.`n"}
+        mplayer2 {Write-Output "Don't bother opening issues about this if it breaks, I don't fucking care`nabout ancient unmaintained shit code. One more issue open about this that`nisn't the suite's fault and mplayer goes fucking out.`n"}
+        ffmbc {Write-Output "Note: this is a fork of FFmpeg 0.10. As such, it's very likely to fail`nto build, work, might burn your computer, kill your children, like mplayer.`nOnly enable it if you absolutely need it. If it breaks, complain first to`nthe author in #ffmbc in Freenode IRC.`n"}
         deleteSource {Write-Output "This will save a bit of space for libraries not compiled from git/hg/svn.`n"}
         Strip {Write-Output "Makes binaries smaller at only a small time cost after compiling.`n"}
-        pack {
-            Write-Output "Attention: Some security applications may detect packed binaries as malware."
-            Write-Output "Increases delay on runtime during which files need to be unpacked."
-            Write-Output "Makes binaries smaller at a big time cost after compiling and on runtime."
-            Write-Output "If distributing the files, consider packing them with 7-zip instead.`n"
-        }
-        logging {
-            Write-Output "Note: Setting this to yes will also hide output from these commands."
-            Write-Output "On successful compilation, these logs are deleted since they aren't needed.`n"
-        }
-        updateSuite {
-            Write-Output "If you have made changes to the scripts, they will be reset but saved to"
-            Write-Output "a .diff text file inside $build`n"
-        }
+        pack {Write-Output "Attention: Some security applications may detect packed binaries as malware.`nIncreases delay on runtime during which files need to be unpacked.`nMakes binaries smaller at a big time cost after compiling and on runtime.`nIf distributing the files, consider packing them with 7-zip instead.`n"}
+        logging {Write-Output "Note: Setting this to yes will also hide output from these commands.`nOn successful compilation, these logs are deleted since they aren't needed.`n"}
+        updateSuite {Write-Output "If you have made changes to the scripts, they will be reset but saved to`na .diff text file inside $build`n"}
         copybin {Write-Output "Will only copy *.exe within the bin-audio, bin-global, and bin-video."}
     }
     Write-Output "$("-"*80)`n$("-"*80)"
@@ -397,10 +269,7 @@ function Write-Question ($Question) {
                     Write-Output "# Full"
                     Write-Option $ffmpeg_options_full
                 ) | Out-File $ffmpegoptions
-                Write-Output "$("-"*80)"
-                Write-Output "File with default FFmpeg options has been created in $ffmpegoptions`n"
-                Write-Output "Edit it now or leave it unedited to compile according to defaults."
-                Write-Output "$("-"*80)"
+                Write-Output "$("-"*80)`nFile with default FFmpeg options has been created in $ffmpegoptions`n`nEdit it now or leave it unedited to compile according to defaults.`n$("-"*80)"
                 Pause
             }
         }
@@ -415,10 +284,7 @@ function Write-Question ($Question) {
                     Write-Output "`n# Full"
                     Write-Option $mpv_options_full
                 ) | Out-File $mpvoptions
-                Write-Output "$("-"*80)"
-                Write-Output "File with default mpv options has been created in $mpvoptions`n"
-                Write-Output "Edit it now or leave it unedited to compile according to defaults."
-                Write-Output "$("-"*80)"
+                Write-Output "$("-"*80)`nFile with default mpv options has been created in $mpvoptions`n`nEdit it now or leave it unedited to compile according to defaults.`n$("-"*80)"
                 Pause
             }
         }
@@ -436,11 +302,7 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
                         $installdir = Resolve-Path $jsonObjects.installdir
                     } catch {
                         do {
-                            Write-Output "$("-"*80)`n$("-"*80)`n"
-                            Write-Output "Where do you want to install the final programs?"
-                            Write-Output "Enter a full path such as:"
-                            Write-Output "`"C:\test\`""
-                            Write-Output "$("-"*80)`n$("-"*80)"
+                            Write-Output "$("-"*80)`n$("-"*80)`n`nWhere do you want to install the final programs?`nEnter a full path such as:`n`"C:\test\`"`n$("-"*80)`n$("-"*80)"
                             $jsonObjects.installdir = (Read-Host -Prompt "Path to final dir: ").Replace('"', '')
                             New-Item -Force -ItemType Directory -Path $jsonObjects.installdir | Out-Null
                         } while (!(Test-Path $jsonObjects.installdir))
@@ -570,18 +432,11 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
     }
 }
 # EOQuestions
-if ($PSVersionTable.PSVersion.Major -ne 3) {
-    Write-Output "$("-"*60)"
-    Write-Output "If you want to reuse this console do"
-    Write-Output "`$env:Path = `$Global:TempPath"
-    Write-Output "else you won't have your original path in this console until you close and reopen."
-    Write-Output "$("-"*60)"
-}
+if ($PSVersionTable.PSVersion.Major -ne 4) {Write-Output "$("-"*60)`nIf you want to reuse this console do`n`$env:Path = [System.Environment]::GetEnvironmentVariable(`"Path`", `"Machine`") + `";`" + [System.Environment]::GetEnvironmentVariable(`"Path`", `"User`")`n$("-"*60)"}
 Start-Sleep -Seconds 2
 $Global:TempPath = $env:Path
 $msys2Path = "$PSScriptRoot\$msys2"
 $env:Path = $($env:Path.Split(';') -match "NVIDIA|Windows" -join ';') + ";$msys2Path\usr\bin"
-$bash = "$msys2Path\usr\bin\bash.exe"
 $msysprefix = switch ([System.IntPtr]::Size) {
     4 {"i686"}
     Default {"x86_64"}
@@ -635,11 +490,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
                 throw
             }
         } catch {
-            Write-Output "$("-"*60)`n"
-            Write-Output "Script to download necessary components failed.`n"
-            Write-Output "Download and extract this manually to inside $($build):"
-            Write-Output "https://i.fsbn.eu/pub/wget-pack.exe`n"
-            Write-Output "$("-"*60)"
+            Write-Output "$("-"*60)`n`nScript to download necessary components failed.`n`nDownload and extract this manually to inside $($build):`nhttps://i.fsbn.eu/pub/wget-pack.exe`n`n$("-"*60)"
             Pause
             exit
         } finally {
@@ -663,20 +514,14 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
         Remove-Item $build\msys2-base.tar
         Move-Item -Path $build\msys64 $PSScriptRoot
     } catch {
-        Write-Output "$("-"*60)`n"
-        Write-Output "- Download msys2 basic system failed,"
-        Write-Output "- please download it manually from:"
-        Write-Output "- http://repo.msys2.org/distrib/"
-        Write-Output "- and copy the uncompressed folder to:"
-        Write-Output "- $build"
-        Write-Output "- and start the script again!`n"
-        Write-Output "$("-"*60)"
+        Write-Output "$("-"*60)`n`n- Download msys2 basic system failed,`n- please download it manually from:`n- http://repo.msys2.org/distrib/`n- and copy the uncompressed folder to:`n- $build`n- and start the script again!`n`n$("-"*60)"
         pause
         exit
     }
 }
 
 $fstab = Resolve-Path $msys2Path\etc\fstab
+$bash = (Resolve-Path $msys2Path\usr\bin\bash.exe).ProviderPath
 # createFolders
 function Write-BaseFolders ([int]$bit) {
     Write-Output "$("-"*60)`ncreating $bit-bit install folders`n$("-"*60)"
@@ -776,12 +621,7 @@ Write-Output "$("-"*60)`nupdate autobuild suite`n$("-"*60)"
 "compile", "helper", "update" | ForEach-Object {if (!(Test-Path $build\media-suite_$($_).sh)) {Invoke-WebRequest -OutFile $build\media-suite_$($_).sh -Uri "https://github.com/jb-alvarado/media-autobuild_suite/raw/master/build/media-suite_$($_).sh"}}
 
 if ($jsonObjects.updateSuite -eq 1) {
-    Write-Output "$("-"*60)"
-    Write-Output "Creating suite update file...`n"
-    Write-Output "Run this file by dragging it to mintty before the next time you run"
-    Write-Output "the suite and before reporting an issue.`n"
-    Write-Output "It needs to be run separately and with the suite not running!"
-    Write-Output "$("-"*60)"
+    Write-Output "$("-"*60)`nCreating suite update file...`n`nRun this file by dragging it to mintty before the next time you run`nthe suite and before reporting an issue.`n`nIt needs to be run separately and with the suite not running!`n$("-"*60)"
     $(
         Write-Output "#!/bin/bash`n`n# Run this file by dragging it to mintty shortcut.`n# Be sure the suite is not running before using it!`n`nupdate=yes`n"
         Get-Content $build\media-suite_update.sh | Select-Object -Index ($((Select-String -Path $build\media-suite_update.sh -Pattern "start suite update").LineNumber)..$((Select-String -Path $build\media-suite_update.sh -Pattern "end suite update").LineNumber)) | ForEach-Object {$_ + "`n"}
