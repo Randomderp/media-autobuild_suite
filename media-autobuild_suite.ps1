@@ -51,17 +51,17 @@ https://github.com/jb-alvarado/media-autobuild_suite
 #>
 
 if ($PSVersionTable.PSVersion.Major -lt 4) {
-    Write-Output "Your Powershell version is too low!`nPlease update your version either through an OS upgrade`nor download the latest version for your system from`nhttps://github.com/PowerShell/PowerShell"
+    Write-Output "$("-".padright([console]::bufferwidth-1,"-"))`nYour Powershell version is too low!`nPlease update your version either through an OS upgrade`nor download the latest version for your system from`nhttps://github.com/PowerShell/PowerShell`n$("-".padright([console]::bufferwidth-1,"-"))`n"
     Pause
     exit
 }
 #requires -Version 4
 if ($PSScriptRoot -match " ") {
-    Write-Output "$("-"*70)`nYou have probably run the script in a path with spaces.`n`nThis is not supported.`n`nPlease move the script to use a path without spaces. Example:`n`nIncorrect: C:\build suite\`n`nCorrect:   C:\build_suite\`n"
+    Write-Output "$("-".padright([console]::bufferwidth-1,"-"))`nYou have probably run the script in a path with spaces.`n`nThis is not supported.`n`nPlease move the script to use a path without spaces. Example:`n`nIncorrect: C:\build suite\`n`nCorrect:   C:\build_suite\`n$("-".padright([console]::bufferwidth-1,"-"))"
     Pause
     exit
 } elseif ($PSScriptRoot.Length -gt 60) {
-    Write-Output "$("-"*70)`nThe total filepath to the suite seems too large (larger than 60 characters):`n`n$PSScriptRoot`n`nSome packages might fail building because of it.`n`nPlease move the suite directory closer to the root of your drive and maybe`n`nrename the suite directory to a smaller name. Examples:`n`nAvoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n`nPrefer: C:\media-autobuild_suite or `n`nPrefer: C:\ab-suite`n"
+    Write-Output "$("-".padright([console]::bufferwidth-1,"-"))`nThe total filepath to the suite seems too large (larger than 60 characters):`n`n$PSScriptRoot`n`nSome packages might fail building because of it.`n`nPlease move the suite directory closer to the root of your drive and maybe`n`nrename the suite directory to a smaller name. Examples:`n`nAvoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n`nPrefer: C:\media-autobuild_suite or `n`nPrefer: C:\ab-suite`n$("-".padright([console]::bufferwidth-1,"-"))"
     pause
     exit
 } else {
