@@ -696,7 +696,7 @@ function Write-Fstab {
     if ($build64 -eq "yes") {$fstabtext += "$PSScriptRoot\local64\ /local64`n"}
     New-Item -Force -ItemType File -Path $fstab -Value $fstabtext | Out-Null
 }
-function Write-Log ($logfile, [ScriptBlock]$ScriptBlock) {
+function Write-Log ([string]$logfile, [switch]$Script, [ScriptBlock]$ScriptBlock, [switch]$commandbash, [string]$BashCommand) {
     try {
         Start-Transcript -Force -Path $logfile | Out-Null
         if ($Script) {
@@ -721,24 +721,11 @@ if (!(Test-Path $PSScriptRoot\mintty.lnk)) {
         Write-Output "$("-"*60)`n`nrebase $msys2 system`n`n$("-"*60)"
         Start-Process -Wait -NoNewWindow -FilePath $msys2Path\autorebase.bat
     }
-    Write-Log -logfile $build\firstrun.log -ScriptBlock {
-        Write-Output "$("-"*60)`n- make a first run`n$("-"*60)"
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc exit"
-    }
+    Write-Log -logfile $build\firstrun.log -Script -ScriptBlock {Write-Output "$("-"*60)`n- make a first run`n$("-"*60)"} -commandbash -bashcommand "-lc exit"
     Write-Fstab
-    Write-Log -logfile $build\firstUpdate.log -ScriptBlock {
-        Write-Output "$("-"*60)`nFirst update`n$("-"*60)"
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors'"
-
-    }
-    Write-Log -logfile $build\criticalUpdate.log -ScriptBlock {
-        Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -S --needed --ask=20 --noconfirm --asdeps bash pacman msys2-runtime'"
-    }
-    Write-Log -logfile $build\secondUpdate.log -ScriptBlock {
-        Write-Output "$("-"*60)`nsecond update`n$("-"*60)"
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Syu --needed --ask=20 --noconfirm --asdeps'"
-    }
+    Write-Log -logfile $build\firstUpdate.log -Script -ScriptBlock {Write-Output "$("-"*60)`nFirst update`n$("-"*60)"} -commandbash -bashcommand "-lc 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors'"
+    Write-Log -logfile $build\criticalUpdate.log -Script -ScriptBlock {Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"} -commandbash -bashcommand "-lc 'pacman -Sy --needed --ask=20 --noconfirm --asdeps pacman-mirrors'"
+    Write-Log -logfile $build\secondUpdate.log -Script -ScriptBlock {Write-Output "$("-"*60)`nsecond update`n$("-"*60)"} -commandbash -bashcommand "-lc 'pacman -Syu --needed --ask=20 --noconfirm --asdeps'"
     $link = $(New-Object -ComObject WScript.Shell).CreateShortcut("$PSScriptRoot\mintty.lnk")
     $link.TargetPath = "$msys2Path\msys2_shell.cmd"
     $link.Arguments = "-full-path -mingw"
@@ -757,38 +744,28 @@ Remove-Item $msys2Path\etc\pac-base.pk -Force -ErrorAction Ignore
 foreach ($i in $msyspackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-base.pk}
 
 if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
-    Write-Log -logfile $build\pacman.log -ScriptBlock {
-        Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)"
-        Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
-        New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String) | Out-Null
-        (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp && pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
-        Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
-    }
+    Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
+    New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String) | Out-Null
+    (Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
+    Write-Log -logfile $build\pacman.log -Script -ScriptBlock {Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)"}  -commandbash -bashcommand "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp && pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
+    Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
 }
 
-if (!(Test-Path $msys2Path\usr\ssl\cert.pem)) {Write-Log -logfile $build\cert.log -ScriptBlock {Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc update-ca-trust"}}
+if (!(Test-Path $msys2Path\usr\ssl\cert.pem)) {Write-Log -logfile $build\cert.log -commandbash -BashCommand "-lc update-ca-trust"}
 if (!(Test-Path "$msys2Path\usr\bin\hg.bat")) {New-Item -Force -ItemType File -Path $msys2Path\usr\bin\hg.bat -Value "`@echo off`r`n`r`nsetlocal`r`nset HG=%~f0`r`n`r`nset PYTHONHOME=`r`nset in=%*`r`nset out=%in: {= `"{%`r`nset out=%out:} =}`" %`r`n`r`n%~dp0python2 %~dp0hg %out%" | Out-Null}
 
 Remove-Item -Force $msys2Path\etc\pac-mingw.pk -ErrorAction Ignore
 foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\etc\pac-mingw.pk}
 
 function Get-Compiler ([int]$bit) {
-    Write-Log -logfile $build\mingw$($bit).log -ScriptBlock {
-        Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)"
-        New-Item -Force -ItemType File -Path $msys2Path\etc\pac-mingw.temp -Value $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String) | Out-Null
-        (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
-        if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
-            Write-Output "$("-"*60)`nMinGW$($bit) GCC compiler isn't installed; maybe the download didn't work`nDo you want to try it again?`n$("-"*60)"
-            if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {
-                Get-Compiler -bit $bit
-            } else {
-                exit
-            }
-        } else {
-            Remove-Item $msys2Path\etc\pac-mingw.temp -ErrorAction Ignore
-        }
+    New-Item -Force -ItemType File -Path $msys2Path\etc\pac-mingw.temp -Value $($mingwpackages | ForEach-Object {"mingw-w64-$($msysprefix)-$_"} | Out-String) | Out-Null
+    (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
+    Write-Log -logfile $build\mingw$($bit).log -Script -ScriptBlock {Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)"} -commandbash -BashCommand "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
+    if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
+        Write-Output "$("-"*60)`nMinGW$($bit) GCC compiler isn't installed; maybe the download didn't work`nDo you want to try it again?`n$("-"*60)"
+        if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {Get-Compiler -bit $bit} else {exit}
+    } else {
+        Remove-Item $msys2Path\etc\pac-mingw.temp -ErrorAction Ignore
     }
 }
 if (($build32 -eq "yes") -and !(Test-Path $msys2Path\mingw32\bin\gcc.exe)) {Get-Compiler -bit 32}
@@ -817,8 +794,7 @@ try {
         6 {if (((Test-Connection -ComputerName pool.sks-keyservers.net -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) -eq 0) {throw}}
         Default {if (!(Test-Connection -ComputerName pool.sks-keyservers.net -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime) {throw}}
     }
-}
-catch {
+} catch {
     Write-Output "Can't connect to sks-keyservers, exiting"
     exit
 }
@@ -833,11 +809,8 @@ try {
 }
 Write-Log -logfile $build\update.log -commandbash -BashCommand "-l /build/media-suite_update.sh --build32=$build32 --build64=$build64"
 if (Test-Path $build\update_core) {
-    Write-Log -logfile $build\update_core.log -ScriptBlock {
-        Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"
-        Start-Process -Wait -NoNewWindow -FilePath $bash -ArgumentList "-lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
-        Remove-Item $build\update_core
-    }
+    Write-Log -logfile $build\update_core.log -Script -ScriptBlock {Write-Output "$("-"*60)`ncritical updates`n$("-"*60)"} -commandbash -BashCommand "-lc 'pacman -Syyu --needed --noconfirm --ask=20 --asdeps'"
+    Remove-Item $build\update_core
 }
 if ($msys2 -eq "msys32") {
     Write-Output "$("-"*60)`nsecond rebase $msys2 system`n$("-"*60)"
@@ -849,7 +822,6 @@ function Write-Profile ([int]$bit) {
 }
 if ($build32 -eq "yes") {Write-Profile -bit 32}
 if ($build64 -eq "yes") {Write-Profile -bit 64}
-Remove-Item $env:TEMP\msys2-base.tar.xz -ErrorAction Ignore
 
 if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\profile.pacnew $msys2Path\etc\profile}
 if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {New-Item -Force -ItemType File -Path $msys2Path\etc\profile.d\Zab-suite.sh -Value "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-Null}
@@ -861,7 +833,8 @@ $MSYSTEM = switch ($build64) {
 }
 Set-Location $PSScriptRoot
 $Host.UI.RawUI.WindowTitle = "MABSbat"
-Write-Log -logfile $build\compile.log -ScriptBlock {
+Remove-Item $env:TEMP\msys2-base.tar.xz -ErrorAction Ignore
+Write-Log -logfile $build\compile.log -Script -ScriptBlock {
     Start-Process -Wait -NoNewWindow -FilePath $msys2Path\usr\bin\env -ArgumentList "MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash -l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
 }
 $env:Path = $Global:TempPath
