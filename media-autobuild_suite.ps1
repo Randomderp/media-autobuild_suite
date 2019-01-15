@@ -579,8 +579,8 @@ if ($PSVersionTable.PSVersion.Major -ne 3) {
 }
 Start-Sleep -Seconds 2
 $Global:TempPath = $env:Path
-$env:Path = $($env:Path.Split(';') -match "NVIDIA|Windows" -join ';') + ";$PSScriptRoot\msys64\usr\bin"
 $msys2Path = "$PSScriptRoot\$msys2"
+$env:Path = $($env:Path.Split(';') -match "NVIDIA|Windows" -join ';') + ";$msys2Path\usr\bin"
 $bash = "$msys2Path\usr\bin\bash.exe"
 $msysprefix = switch ([System.IntPtr]::Size) {
     4 {"i686"}
@@ -827,14 +827,13 @@ if (Test-Path $msys2Path\etc\profile.pacnew) {Move-Item -Force $msys2Path\etc\pr
 if (!(Select-String -Pattern "profile2.local" -Path $msys2Path\etc\profile)) {New-Item -Force -ItemType File -Path $msys2Path\etc\profile.d\Zab-suite.sh -Value "if [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW64 ]]; then`n   source /local64/etc/profile2.local`nelif [[ -z `"`$MSYSTEM`" || `"`$MSYSTEM`" = MINGW32 ]]; then`n   source /local32/etc/profile2.local`nfi" | Out-Null}
 
 # compileLocals
-$MSYSTEM = switch ($build64) {
-    yes {"MINGW64"}
-    Default {"MINGW32"}
-}
 Set-Location $PSScriptRoot
 $Host.UI.RawUI.WindowTitle = "MABSbat"
 Remove-Item $env:TEMP\msys2-base.tar.xz -ErrorAction Ignore
-Write-Log -logfile $build\compile.log -Script -ScriptBlock {
-    Start-Process -Wait -NoNewWindow -FilePath $msys2Path\usr\bin\env -ArgumentList "MSYSTEM=$MSYSTEM MSYS2_PATH_TYPE=inherit /usr/bin/bash -l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
+$env:MSYSTEM = switch ($build64) {
+    yes {"MINGW64"}
+    Default {"MINGW32"}
 }
-$env:Path = $Global:TempPath
+$env:MSYS2_PATH_TYPE = "inherit"
+Write-Log -logfile $build\compile.log -commandbash -BashCommand "-l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
