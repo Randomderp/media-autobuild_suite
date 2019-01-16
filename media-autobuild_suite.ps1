@@ -206,7 +206,7 @@ function Write-Question ($Question) {
 		pack {Write-Output "Attention: Some security applications may detect packed binaries as malware.`nIncreases delay on runtime during which files need to be unpacked.`nMakes binaries smaller at a big time cost after compiling and on runtime.`nIf distributing the files, consider packing them with 7-zip instead.`n"}
 		logging {Write-Output "Note: Setting this to yes will also hide output from these commands.`nOn successful compilation, these logs are deleted since they aren't needed.`n"}
 		updateSuite {Write-Output "If you have made changes to the scripts, they will be reset but saved to`na .diff text file inside $build`n"}
-		copybin {Write-Output "Will only copy *.exe within the local64|local32(Pref 64 bit)."}
+		copybin {Write-Output "Will only copy the files within the local64|local32\bin* folders.`nIt is up to you to either set the install directory to a folder in `$env:PATH`n or add the install dir to `$env:PATH`n"}
 	}
 	Write-Output "$("-"*80)`n$("-"*80)"
 	$jsonObjects.$Question = [int](
@@ -671,6 +671,9 @@ if ($copybin -eq "y") {
 		"yes" {"64"}
 		default {"32"}
 	}
-	Copy-Item -Force -Filter *.exe -Recurse -Path $PSScriptRoot\local$bits -Destination $installdir
+	Write-Output "Copying files to $installdir"
+	Copy-Item -Force -Container -Recurse -Path $PSScriptRoot\local$bits\bin-audio\* -Destination $installdir
+	Copy-Item -Force -Container -Recurse -Path $PSScriptRoot\local$bits\bin-global\* -Destination $installdir
+	Copy-Item -Force -Container -Recurse -Path $PSScriptRoot\local$bits\bin-video\* -Destination $installdir
 }
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
