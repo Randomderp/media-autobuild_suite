@@ -580,7 +580,7 @@ if (!(Test-Path $msys2Path\usr\bin\make.exe)) {
 	Remove-Item -Force $build\install_base_failed -ErrorAction Ignore
 	New-Item -Force -ItemType File -Path $msys2Path\etc\pac-base.temp -Value $($msyspackages | ForEach-Object {"$_"} | Out-String) | Out-Null
 	(Get-Content $msys2Path\etc\pac-base.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-base.temp -Force -NoNewline
-	Write-Log -logfile $build\pacman.log -Script -ScriptBlock {Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)"}  -commandbash -bashcommand "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp && pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-base.temp'"
+	Write-Log -logfile $build\pacman.log -Script -ScriptBlock {Write-Output "$("-"*60)`ninstall msys2 base system`n$("-"*60)"}  -commandbash -bashcommand "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-base.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-base.temp'"
 	Remove-Item $msys2Path\etc\pac-base.temp -ErrorAction Ignore
 }
 
@@ -593,7 +593,7 @@ foreach ($i in $mingwpackages) {Write-Output "$i" | Out-File -Append $msys2Path\
 function Get-Compiler ([int]$bit) {
     New-Item -Force -ItemType File -Path $msys2Path\etc\pac-mingw.temp -Value $($mingwpackages | ForEach-Object {"mingw-w64-$(switch ($bit) {64 {"x86_64"} 32 {"i686"}})-$_"} | Out-String) | Out-Null
     (Get-Content $msys2Path\etc\pac-mingw.temp -Raw).Replace("`r", "") | Set-Content $msys2Path\etc\pac-mingw.temp -Force -NoNewline
-    Write-Log -logfile $build\mingw$($bit).log -Script -ScriptBlock {Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)"} -commandbash -BashCommand "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -D --asexplicit --noconfirm --ask=20 - < /etc/pac-mingw.temp'"
+    Write-Log -logfile $build\mingw$($bit).log -Script -ScriptBlock {Write-Output "$("-"*60)`ninstall $bit bit compiler`n$("-"*60)"} -commandbash -BashCommand "-lc 'pacman -Sw --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp; pacman -S --noconfirm --ask=20 --needed - < /etc/pac-mingw.temp'"
     if (!(Test-Path $msys2Path\mingw$($bit)\bin\gcc.exe)) {
         Write-Output "$("-"*60)`nMinGW$($bit) GCC compiler isn't installed; maybe the download didn't work`nDo you want to try it again?`n$("-"*60)"
         if ($(Read-Host -Prompt "try again [y/n]: ") -eq "y") {Get-Compiler -bit $bit} else {exit}
