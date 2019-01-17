@@ -51,17 +51,17 @@ https://github.com/jb-alvarado/media-autobuild_suite
 #>
 
 if ($PSVersionTable.PSVersion.Major -lt 4) {
-	Write-Output "$("-".padright([console]::bufferwidth-1,"-"))`nYour Powershell version is too low!`nPlease update your version either through an OS upgrade`nor download the latest version for your system from`nhttps://github.com/PowerShell/PowerShell`n$("-".padright([console]::bufferwidth-1,"-"))`n"
+	Write-Output "$("-".padright([Console]::bufferwidth-1,"-"))`nYour Powershell version is too low!`nPlease update your version either through an OS upgrade`nor download the latest version for your system from`nhttps://github.com/PowerShell/PowerShell`n$("-".padright([Console]::bufferwidth-1,"-"))`n"
 	Pause
 	exit
 }
 #requires -Version 4
 if ($PSScriptRoot -match " ") {
-	Write-Output "$("-".padright([console]::bufferwidth-1,"-"))`nYou have probably run the script in a path with spaces.`n`nThis is not supported.`n`nPlease move the script to use a path without spaces. Example:`n`nIncorrect: C:\build suite\`n`nCorrect:   C:\build_suite\`n$("-".padright([console]::bufferwidth-1,"-"))"
+	Write-Output "$("-".padright([Console]::bufferwidth-1,"-"))`nYou have probably run the script in a path with spaces.`n`nThis is not supported.`n`nPlease move the script to use a path without spaces. Example:`n`nIncorrect: C:\build suite\`n`nCorrect:   C:\build_suite\`n$("-".padright([Console]::bufferwidth-1,"-"))"
 	Pause
 	exit
 } elseif ($PSScriptRoot.Length -gt 60) {
-	Write-Output "$("-".padright([console]::bufferwidth-1,"-"))`nThe total filepath to the suite seems too large (larger than 60 characters):`n`n$PSScriptRoot`n`nSome packages might fail building because of it.`n`nPlease move the suite directory closer to the root of your drive and maybe`n`nrename the suite directory to a smaller name. Examples:`n`nAvoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n`nPrefer: C:\media-autobuild_suite or `n`nPrefer: C:\ab-suite`n$("-".padright([console]::bufferwidth-1,"-"))"
+	Write-Output "$("-".padright([Console]::bufferwidth-1,"-"))`nThe total filepath to the suite seems too large (larger than 60 characters):`n`n$PSScriptRoot`n`nSome packages might fail building because of it.`n`nPlease move the suite directory closer to the root of your drive and maybe`n`nrename the suite directory to a smaller name. Examples:`n`nAvoid:  C:\Users\Administrator\Desktop\testing\media-autobuild_suite-master`n`nPrefer: C:\media-autobuild_suite or `n`nPrefer: C:\ab-suite`n$("-".padright([Console]::bufferwidth-1,"-"))"
 	pause
 	exit
 } else {
@@ -672,8 +672,39 @@ if ($copybin -eq "y") {
 		default {"32"}
 	}
 	Write-Output "Copying files to $installdir"
-	Copy-Item -Force -Container -Recurse -Path $PSScriptRoot\local$bits\bin-audio\* -Destination $installdir
-	Copy-Item -Force -Container -Recurse -Path $PSScriptRoot\local$bits\bin-global\* -Destination $installdir
-	Copy-Item -Force -Container -Recurse -Path $PSScriptRoot\local$bits\bin-video\* -Destination $installdir
+	Get-ChildItem -Recurse -Path $PSScriptRoot\local$($bits)\bin-*\* | ForEach-Object {
+		$testfile = $_
+		function Invoke-Copy {
+			try {
+				Copy-Item -Path $testfile -Destination $installdir
+			} catch [System.IO.IOException] {
+				Write-Output "$testfile is in use or is running. Do you wish to skip copying this file?"
+				[validateset("y*", "n*")]$skip = Read-Host -Prompt "Skip [y/n]: "
+				if ($skip -match "y*") {
+					continue
+				} else {
+					if (($testfile.Extension -eq ".exe") -and ((Get-Process).Path -match $testfile.FullName.Replace('\', '\\'))) {
+						Write-Output "Do you want to force quit $($testfile.BaseName)?"
+						[validateset("y*", "n*")]$forcequit = Read-Host -Prompt "Skip [y/n]: "
+						if ($forcequit -match "y*") {
+							Get-Process | Where-Object {$_.Path -match $testfile.FullName.Replace('\', '\\')} | Stop-Process
+						} else {
+							Write-Output "Press [Enter] when the program is finished."
+							pause
+						}
+						Invoke-Copy
+					}
+					if (($testfile.Extension -eq ".dll") -and (Get-Process -Module -ErrorAction Ignore | Select-Object -Property FileName | Select-String -Pattern $testfile.FullName.Replace('\','\\'))) {
+						Write-Output "$testfile is still in use. Since it is a dll, this script is unable to truly help you.`nPlease close whatever program could be using it and press [Enter]."
+                        pause
+						Invoke-Copy
+					}
+				}
+			} catch {
+				Write-Output "An Unknown Error occured. Not related to systemIO.`nCheck the Powershellerror.txt at the suite's basefolder and see if you can find out what's wrong."
+				$Error | Out-File $PSScriptRoot\Powershellerror.txt
+			}
+		}
+	}
 }
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
