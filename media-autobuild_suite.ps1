@@ -429,60 +429,6 @@ $msysprefix = switch ([System.IntPtr]::Size) {
 
 if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
     Set-Location $build
-    if (!(Test-Path $build\7za.exe)) {
-        try {
-            Write-Output "$("-"*60)`n`n- Downloading Wget`n`n$("-"*60)"
-            $progressPreference = 'silentlyContinue'
-            switch ($PSVersionTable.PSVersion.Major) {
-                6 {
-                    switch ((Test-Connection -ComputerName i.fsbn.eu -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) {
-                        0 {$null}
-                        Default {$fsbnping = $_}
-                    }
-                    switch ((Test-Connection -ComputerName randomderp.com -Count 1 -ErrorAction Ignore -InformationAction Ignore).Replies.RoundTripTime) {
-                        0 {$null}
-                        Default {$rdpping = $_}
-                    }
-                }
-                Default {
-                    $fsbnping = (Test-Connection -ComputerName i.fsbn.eu -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
-                    $rdpping = (Test-Connection -ComputerName randomderp.com -Count 1 -InformationAction Ignore -ErrorAction Ignore).ResponseTime
-                }
-            }
-            switch (Test-Path variable:fsbnping) {
-                $true {
-                    switch (Test-Path variable:rdpping) {
-                        $true {
-                            if ($fsbnping -le $rdpping) {
-                                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"
-                            } else {
-                                Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"
-                            }
-                        }
-                        $false {Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://i.fsbn.eu/pub/wget-pack.exe"}
-                    }
-                }
-                $false {
-                    switch (Test-Path variable:$rdpping) {
-                        $true {Invoke-WebRequest -OutFile "$build\wget-pack.exe" -Uri "https://randomderp.com/wget-pack.exe"}
-                        $false {throw}
-                    }
-                }
-            }
-            if ((Get-FileHash -Path $build\wget-pack.exe).Hash -eq "3F226318A73987227674A4FEDDE47DF07E85A48744A07C7F6CDD4F908EF28947") {
-                Start-Process -Wait -NoNewWindow -FilePath $build\wget-pack.exe  -WorkingDirectory $build
-            } else {
-                throw
-            }
-        } catch {
-            Write-Output "$("-"*60)`n`nScript to download necessary components failed.`n`nDownload and extract this manually to inside $($build):`nhttps://i.fsbn.eu/pub/wget-pack.exe`n`n$("-"*60)"
-            Pause
-            exit
-        } finally {
-            Remove-Item $build\wget-pack.exe 2>$null
-            $progressPreference = 'Continue'
-        }
-    }
     Write-Output "$("-"*60)`n`n- Download and install msys2 basic system`n`n$("-"*60)"
     try {
         if ((Test-Path $env:TEMP\msys2-base.tar.xz) -and ((Get-Item $env:TEMP\msys2-base.tar.xz).Length -eq (Invoke-WebRequest -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz" -UseBasicParsing -Method Head).headers.'Content-Length')) {
@@ -491,11 +437,12 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Invoke-WebRequest -OutFile $env:TEMP\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
         }
         Copy-Item $env:TEMP\msys2-base.tar.xz $build\msys2-base.tar.xz
-        Start-Process -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar.xz" -WorkingDirectory $build
-        if (-not $? -or $LASTEXITCODE -ne 0) {throw}
-        Remove-Item $build\msys2-base.tar.xz -ErrorAction Ignore
-        Start-Process -Wait -NoNewWindow -FilePath $build\7za.exe -ArgumentList "x -aoa msys2-base.tar" -WorkingDirectory $build
-        if (-not $? -or $LASTEXITCODE -ne 0) {throw}
+        powershell -noprofile -command {
+            Install-Module -Name Pscx -Scope CurrentUser -Force -AllowClobber
+            Expand-Archive -Force -ShowProgress $PWD\msys2-base.tar.xz
+            Expand-Archive -Force -ShowProgress -OutputPath .. $PWD\msys2-base.tar
+        }
+        Uninstall-Module -Name pscx -Force -AllVersions
         Remove-Item $build\msys2-base.tar
         Move-Item -Path $build\msys64 $PSScriptRoot
     } catch {
