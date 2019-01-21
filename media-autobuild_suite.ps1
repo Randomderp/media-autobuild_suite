@@ -249,39 +249,34 @@ function Write-Question ($Question) {
                 }
             }
         }
-        if (($jsonObjects.ffmpegB2 -ne 2) -or ($jsonObjects.cyanrip2 -eq 1)) {
-            $ffmpegoptions = "$build\ffmpeg_options.txt"
-            if (!(Test-Path -PathType Leaf $ffmpegoptions)) {
-                $(
-                    Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'"
-                    Write-Option $ffmpeg_options_builtin
-                    Write-Output "# Common options"
-                    Write-Option $ffmpeg_options_basic
-                    Write-Output "# Zeranoe"
-                    Write-Option $ffmpeg_options_zeranoe
-                    Write-Output "# Full"
-                    Write-Option $ffmpeg_options_full
-                ) | Out-File $ffmpegoptions
-                Write-Output "$("-"*80)`nFile with default FFmpeg options has been created in $ffmpegoptions`n`nEdit it now or leave it unedited to compile according to defaults.`n$("-"*80)"
-                Pause
-            }
+        $ffmpegoptions = "$build\ffmpeg_options.txt"
+        if ((($jsonObjects.ffmpegB2 -ne 2) -or ($jsonObjects.cyanrip2 -eq 1)) -and !(Test-Path -PathType Leaf $ffmpegoptions) -and ($Question -eq "ffmpegB2")) {
+            $(
+                Write-Output "# Lines starting with this character are ignored`n# Basic built-in options, can be removed if you delete '--disable-autodetect'"
+                Write-Option $ffmpeg_options_builtin
+                Write-Output "# Common options"
+                Write-Option $ffmpeg_options_basic
+                Write-Output "# Zeranoe"
+                Write-Option $ffmpeg_options_zeranoe
+                Write-Output "# Full"
+                Write-Option $ffmpeg_options_full
+            ) | Out-File $ffmpegoptions
+            Write-Output "$("-"*80)`nFile with default FFmpeg options has been created in $ffmpegoptions`n`nEdit it now or leave it unedited to compile according to defaults.`n$("-"*80)"
+            Pause
         }
-        if ($jsonObjects.mpv -eq 1) {
-            $mpvoptions = "$build\mpv_options.txt"
-            if (!(Test-Path -PathType Leaf $mpvoptions)) {
-                $(
-                    Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them."
-                    Write-Option $mpv_options_builtin
-                    Write-Output "`n# Common options or overriden defaults"
-                    Write-Option $mpv_options_basic
-                    Write-Output "`n# Full"
-                    Write-Option $mpv_options_full
-                ) | Out-File $mpvoptions
-                Write-Output "$("-"*80)`nFile with default mpv options has been created in $mpvoptions`n`nEdit it now or leave it unedited to compile according to defaults.`n$("-"*80)"
-                Pause
-            }
+        $mpvoptions = "$build\mpv_options.txt"
+        if (($jsonObjects.mpv -eq 1) -and !(Test-Path -PathType Leaf $mpvoptions) -and ($Question -eq "ffmpegB2")) {
+            $(
+                Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them."
+                Write-Option $mpv_options_builtin
+                Write-Output "`n# Common options or overriden defaults"
+                Write-Option $mpv_options_basic
+                Write-Output "`n# Full"
+                Write-Option $mpv_options_full
+            ) | Out-File $mpvoptions
+            Write-Output "$("-"*80)`nFile with default mpv options has been created in $mpvoptions`n`nEdit it now or leave it unedited to compile according to defaults.`n$("-"*80)"
+            Pause
         }
-
     }
 }
 
@@ -437,14 +432,23 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Invoke-WebRequest -OutFile $env:TEMP\msys2-base.tar.xz -Uri "http://repo.msys2.org/distrib/msys2-$($msysprefix)-latest.tar.xz"
         }
         Copy-Item $env:TEMP\msys2-base.tar.xz $build\msys2-base.tar.xz
-        powershell -noprofile -command {
-            Install-Module -Name Pscx -Scope CurrentUser -Force -AllowClobber
-            Expand-Archive -Force -ShowProgress $PWD\msys2-base.tar.xz
-            Expand-Archive -Force -ShowProgress -OutputPath .. $PWD\msys2-base.tar
+        if (!(Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -Recurse | Get-ItemProperty -name Version -ErrorAction Ignore | Select-Object -Property PSChildName, Version | Where-Object {$_.PSChildName -match "Client"} | Where-Object {$_.Version -ge 4.5})) {
+            Write-Output "You lack a dotnet version greater than or equal to 4.5, thus this script cannot automatically extract the msys2 system"
+            Write-Output "Please upgrade your dotnet either by updating your OS or by downloading the latest version at:"
+            Write-Output "https://dotnet.microsoft.com/download/dotnet-framework-runtime"
+            exit 3
         }
-        Uninstall-Module -Name pscx -Force -AllVersions
-        Remove-Item $build\msys2-base.tar
-        Move-Item -Path $build\msys64 $PSScriptRoot
+        $wc = New-Object System.Net.WebClient
+        $wc.DownloadFile((Invoke-RestMethod "https://www.powershellgallery.com/api/v2/Packages?`$filter=Id eq 'pscx' and IsLatestVersion").content.src, "$build\pscx.zip")
+        Add-Type -assembly "System.IO.Compression.FileSystem"
+        [System.IO.Compression.ZipFile]::ExtractToDirectory("$build\pscx.zip", "$build\pscx")
+        Remove-Item -Recurse $PWD\pscx.zip, $PWD\pscx\_rels, $PWD\pscx\package
+        powershell -noprofile -command {
+            Import-Module -Name $PWD\pscx\Pscx.psd1 -Force -Cmdlet Expand-Archive -Prefix 7za
+            Expand-7zaArchive -Force -ShowProgress $PWD\msys2-base.tar.xz
+            Expand-7zaArchive -Force -ShowProgress -OutputPath .. $PWD\msys2-base.tar
+        }
+        Remove-Item -Recurse $PWD\pscx, $PWD\msys2-base.tar, $PWD\msys2-base.tar.xz
     } catch {
         Write-Output "$("-"*60)`n`n- Download msys2 basic system failed,`n- please download it manually from:`n- http://repo.msys2.org/distrib/`n- and copy the uncompressed folder to:`n- $build`n- and start the script again!`n`n$("-"*60)"
         pause
