@@ -118,12 +118,14 @@ $jsonObjects = [PSCustomObject]@{
     ripgrep      = 0
     jq           = 0
     dssim        = 0
+    avs2 = 0
     cores        = 0
     deleteSource = 0
     strip        = 0
     pack         = 0
     logging      = 0
     updateSuite  = 0
+    timestamp    = 0
     copybin      = 0
     installdir   = $null
 }
@@ -172,12 +174,14 @@ function Write-Question ($Question) {
         ripgrep {Write-Output "Build ripgrep [faster grep in Rust]?"}
         jq {Write-Output "Build jq (CLI JSON processor)?"}
         dssim {Write-Output "Build dssim (multiscale SSIM in Rust)?"}
+        avs2 {Write-Output "Build avs2 (Audio Video Coding Standard Gen2 encoder/decoder)?"}
         cores {Write-Output "Number of CPU Cores/Threads for compiling:`n[it is non-recommended to use all cores/threads!]`n"}
         deleteSource {Write-Output "Delete versioned source folders after compile is done?"}
         strip {Write-Output "Strip compiled files binaries?"}
         pack {Write-Output "Pack compiled files?"}
         logging {Write-Output "Write logs of compilation commands?"}
         updateSuite {Write-Output "Create script to update suite files automatically?"}
+        timestamp {Write-Output "Show timestamps of commands during compilation?"}
         copybin {Write-Output "Copy final binary files to another folder?"}
     }
     switch -Regex ($Question) {
@@ -201,11 +205,13 @@ function Write-Question ($Question) {
         fdkaac {Write-Output "Note: FFmpeg's aac encoder is no longer experimental and considered equal or`nbetter in quality from 96kbps and above. It still doesn't support AAC-HE/HEv2`nso if you need that or want better quality at lower bitrates than 96kbps,`nuse FDK-AAC.`n"}
         mplayer2 {Write-Output "Don't bother opening issues about this if it breaks, I don't fucking care`nabout ancient unmaintained shit code. One more issue open about this that`nisn't the suite's fault and mplayer goes fucking out.`n"}
         ffmbc {Write-Output "Note: this is a fork of FFmpeg 0.10. As such, it's very likely to fail`nto build, work, might burn your computer, kill your children, like mplayer.`nOnly enable it if you absolutely need it. If it breaks, complain first to`nthe author in #ffmbc in Freenode IRC.`n"}
+        avs2 {Write-Output "Binaries being built depends on `"standalone=y`" and are always static."}
         deleteSource {Write-Output "This will save a bit of space for libraries not compiled from git/hg/svn.`n"}
         Strip {Write-Output "Makes binaries smaller at only a small time cost after compiling.`n"}
         pack {Write-Output "Attention: Some security applications may detect packed binaries as malware.`nIncreases delay on runtime during which files need to be unpacked.`nMakes binaries smaller at a big time cost after compiling and on runtime.`nIf distributing the files, consider packing them with 7-zip instead.`n"}
         logging {Write-Output "Note: Setting this to yes will also hide output from these commands.`nOn successful compilation, these logs are deleted since they aren't needed.`n"}
         updateSuite {Write-Output "If you have made changes to the scripts, they will be reset but saved to`na .diff text file inside $build`n"}
+        timestamp {Write-Output "This will show the start times of commands during compilation.`nDon't turn this on unless you really want to see the timestamps."}
         copybin {Write-Output "Will only copy the files within the local64|local32\bin* folders.`nIt is up to you to either set the install directory to a folder in `$env:PATH`n or add the install dir to `$env:PATH`n"}
     }
     Write-Output "$("-"*80)`n$("-"*80)"
@@ -231,6 +237,7 @@ function Write-Question ($Question) {
                 pack {"Pack files: "}
                 logging {"Write logs: "}
                 updateSuite {"Create update script: "}
+                timestamp {"Show Timestamps: "}
                 copybin {"Copy binary files: "}
                 Default {"Build $($Question): "}
             }
@@ -615,7 +622,7 @@ $env:MSYSTEM = switch ($build64) {
     Default {"MINGW32"}
 }
 $env:MSYS2_PATH_TYPE = "inherit"
-Write-Log -logfile $build\compile.log -commandbash -BashCommand "-l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim"
+Write-Log -logfile $build\compile.log -commandbash -BashCommand "-l /build/media-suite_compile.sh --cpuCount=$cores --build32=$build32 --build64=$build64 --deleteSource=$deleteSource --mp4box=$mp4box --vpx=$vpx2 --x264=$x2643 --x265=$x2652 --other265=$other265 --flac=$flac --fdkaac=$fdkaac --mediainfo=$mediainfo --sox=$soxB --ffmpeg=$ffmpeg --ffmpegUpdate=$ffmpegUpdate --ffmpegChoice=$ffmpegChoice --mplayer=$mplayer2 --mpv=$mpv --license=$license2 --stripping=$strip --packing=$pack --rtmpdump=$rtmpdump --logging=$logging --bmx=$bmx --standalone=$standalone --aom=$aom --faac=$faac --ffmbc=$ffmbc --curl=$curl --cyanrip=$cyanrip2 --redshift=$redshift --rav1e=$rav1e --ripgrep=$ripgrep --dav1d=$dav1d --vvc=$vvc --jq=$jq --dssim=$dssim --avs2=$avs2 --timeStamp=$timeStamp"
 
 if ($copybin -eq "y") {
     $bits = switch ($build64) {
