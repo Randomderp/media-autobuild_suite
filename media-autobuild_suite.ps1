@@ -76,15 +76,15 @@ $PSDefaultParameterValues["Set-Content:Encoding"] = "UTF8"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 New-Item -ItemType Directory -Force -Path $PSScriptRoot\build -ErrorAction Ignore | Out-Null
 
-$msyspackages = "asciidoc", "autoconf", "autoconf-archive", "autogen", "automake-wrapper", "bison", "diffstat", "dos2unix", "doxygen", "flex", "git", "gperf", "gyp-git", "help2man", "intltool", "itstool", "libtool", "make", "man-db", "mercurial", "mintty", "p7zip", "patch", "python", "ruby", "subversion", "texinfo", "unzip", "wget", "winpty", "xmlto", "zip"
-$mingwpackages = "cmake", "dlfcn", "libpng", "gcc", "nasm", "pcre", "tools-git", "yasm", "ninja", "pkg-config", "meson"
-$ffmpeg_options_builtin = "--disable-autodetect", "amf", "bzlib", "cuda", "cuvid", "d3d11va", "dxva2", "iconv", "lzma", "nvenc", "schannel", "zlib", "sdl2", "--disable-debug", "ffnvcodec", "nvdec"
-$ffmpeg_options_basic = "gmp", "libmp3lame", "libopus", "libvorbis", "libvpx", "libx264", "libx265", "libdav1d"
-$ffmpeg_options_zeranoe = "fontconfig", "gnutls", "libass", "libbluray", "libfreetype", "libmfx", "libmysofa", "libopencore-amrnb", "libopencore-amrwb", "libopenjpeg", "libsnappy", "libsoxr", "libspeex", "libtheora", "libtwolame", "libvidstab", "libvo-amrwbenc", "libwavpack", "libwebp", "libxml2", "libzimg", "libshine", "gpl", "openssl", "libtls", "avisynth", "mbedtls", "libxvid", "libaom", "version3"
-$ffmpeg_options_full = "chromaprint", "cuda-sdk", "decklink", "frei0r", "libbs2b", "libcaca", "libcdio", "libfdk-aac", "libflite", "libfribidi", "libgme", "libgsm", "libilbc", "libkvazaar", "libmodplug", "libnpp", "libopenh264", "libopenmpt", "librtmp", "librubberband", "libssh", "libtesseract", "libxavs", "libzmq", "libzvbi", "opencl", "opengl", "libvmaf", "libcodec2", "libsrt", "ladspa", "#vapoursynth", "#liblensfun", "libndi_newtek"
-$mpv_options_builtin = "#cplayer", "#manpage-build", "#lua", "#javascript", "#libass", "#libbluray", "#uchardet", "#rubberband", "#lcms2", "#libarchive", "#libavdevice", "#shaderc", "#crossc", "#d3d11", "#jpeg"
-$mpv_options_basic = "--disable-debug-build", "--lua=luajit"
-$mpv_options_full = "dvdread", "dvdnav", "cdda", "egl-angle", "vapoursynth", "html-build", "pdf-build", "libmpv-shared"
+$msyspackages = ("asciidoc autoconf autoconf-archive autogen automake-wrapper bison diffstat dos2unix doxygen flex git gperf gyp-git help2man intltool itstool libtool make man-db mercurial mintty p7zip patch python ruby subversion texinfo unzip wget winpty xmlto zip").Split(' ')
+$mingwpackages = ("cmake dlfcn libpng gcc nasm pcre tools-git yasm ninja pkg-config meson").Split(' ')
+$ffmpeg_options_builtin = ("--disable-autodetect amf bzlib cuda cuvid d3d11va dxva2 iconv lzma nvenc schannel zlib sdl2 --disable-debug ffnvcodec nvdec").Split(' ')
+$ffmpeg_options_basic = ("gmp libmp3lame libopus libvorbis libvpx libx264 libx265 libdav1d").Split(' ')
+$ffmpeg_options_zeranoe = ("fontconfig gnutls libass libbluray libfreetype libmfx libmysofa libopencore-amrnb libopencore-amrwb libopenjpeg libsnappy libsoxr libspeex libtheora libtwolame libvidstab libvo-amrwbenc libwavpack libwebp libxml2 libzimg libshine gpl openssl libtls avisynth mbedtls libxvid libaom version3").Split(' ')
+$ffmpeg_options_full = ("chromaprint cuda-sdk decklink frei0r libbs2b libcaca libcdio libfdk-aac libflite libfribidi libgme libgsm libilbc libkvazaar libmodplug libnpp libopenh264 libopenmpt librtmp librubberband libssh libtesseract libxavs libzmq libzvbi opencl opengl libvmaf libcodec2 libsrt ladspa #vapoursynth #liblensfun libndi_newtek").Split(' ')
+$mpv_options_builtin = ("#cplayer #manpage-build #lua #javascript #libass #libbluray #uchardet #rubberband #lcms2 #libarchive #libavdevice #shaderc #crossc #d3d11 #jpeg").Split(' ')
+$mpv_options_basic = ("--disable-debug-build --lua=luajit").Split(' ')
+$mpv_options_full = ("dvdread dvdnav cdda egl-angle vapoursynth html-build pdf-build libmpv-shared").Split(' ')
 $jsonObjects = [PSCustomObject]@{
     msys2Arch    = [System.IntPtr]::Size / 4
     arch         = 0
@@ -118,7 +118,7 @@ $jsonObjects = [PSCustomObject]@{
     ripgrep      = 0
     jq           = 0
     dssim        = 0
-    avs2 = 0
+    avs2         = 0
     cores        = 0
     deleteSource = 0
     strip        = 0
