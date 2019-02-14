@@ -272,7 +272,7 @@ function Write-Question ($Question) {
             Pause
         }
         $mpvoptions = "$build\mpv_options.txt"
-        if (($jsonObjects.mpv -eq 1) -and !(Test-Path -PathType Leaf $mpvoptions) -and ($Question -eq "ffmpegB2")) {
+        if (($jsonObjects.mpv -eq 1) -and !(Test-Path -PathType Leaf $mpvoptions) -and ($Question -eq "mpv")) {
             $(
                 Write-Output "# Lines starting with this character are ignored`n`n# Built-in options, use --disable- to disable them."
                 Write-Option $mpv_options_builtin
@@ -445,8 +445,7 @@ if (!(Test-Path $msys2Path\msys2_shell.cmd)) {
             Write-Output "https://dotnet.microsoft.com/download/dotnet-framework-runtime"
             exit 3
         }
-        $wc = New-Object System.Net.WebClient
-        $wc.DownloadFile((Invoke-RestMethod "https://www.powershellgallery.com/api/v2/Packages?`$filter=Id eq 'pscx' and IsLatestVersion").content.src, "$build\pscx.zip")
+        Invoke-WebRequest -UseBasicParsing -Uri (Invoke-RestMethod "https://www.powershellgallery.com/api/v2/Packages?`$filter=Id eq 'pscx' and IsLatestVersion").content.src -OutFile "$build\pscx.zip"
         Add-Type -assembly "System.IO.Compression.FileSystem"
         [System.IO.Compression.ZipFile]::ExtractToDirectory("$build\pscx.zip", "$build\pscx")
         Remove-Item -Recurse $PWD\pscx.zip, $PWD\pscx\_rels, $PWD\pscx\package
