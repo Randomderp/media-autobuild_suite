@@ -468,14 +468,7 @@ $bash = (Resolve-Path $msys2Path\usr\bin\bash.exe).ProviderPath
 function Write-BaseFolders ([int]$bit) {
     if (!(Test-Path -Path $PSScriptRoot\local$bit\bin-global -PathType Container)) {
         Write-Output "$("-"*60)`ncreating $bit-bit install folders`n$("-"*60)"
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-audio -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-global -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\bin-video -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\etc -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\include -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\lib\pkgconfig -ErrorAction Ignore | Out-Null
-        New-Item -ItemType Directory $PSScriptRoot\local$bit\share -ErrorAction Ignore | Out-Null
+        "bin bin-audio bin-global bin-video etc include lib\pkgconfig share".Split(' ') | ForEach-Object {New-Item -ItemType Directory $PSScriptRoot\local$bit\$_ -ErrorAction Ignore | Out-Null}
     }
 }
 
