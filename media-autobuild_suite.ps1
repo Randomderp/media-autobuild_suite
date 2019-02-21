@@ -424,6 +424,7 @@ foreach ($a in $jsonObjects.psobject.Properties.Name) {
 if ($PSVersionTable.PSVersion.Major -ne 4) {Write-Output "$("-"*60)`nIf you want to reuse this console do`n`$env:Path = [System.Environment]::GetEnvironmentVariable(`"Path`", `"Machine`") + `";`" + [System.Environment]::GetEnvironmentVariable(`"Path`", `"User`")`n$("-"*60)"}
 $msys2Path = "$PSScriptRoot\$msys2"
 $env:Path = $($env:Path.Split(';') -match "NVIDIA|Windows" -join ';') + ";$msys2Path\usr\bin"
+$env:noMintty="y"
 $msysprefix = switch ([System.IntPtr]::Size) {
     4 {"i686"}
     Default {"x86_64"}
