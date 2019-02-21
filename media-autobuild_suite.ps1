@@ -493,7 +493,7 @@ function Write-Log ([string]$logfile, [switch]$Script, [ScriptBlock]$ScriptBlock
     try {
         Start-Transcript -Force -Path $logfile | Out-Null
         if ($Script) {&$ScriptBlock}
-        Remove-Item -Force -Path "$build\compilation_failed", "$build\fail_comp" -ErrorAction Ignore
+        Remove-Item -Force -Path "$build\compilation_failed", "$build\fail_comp" -ErrorAction Ignore | Out-Null
         if ($commandbash) {&$bash @($BashCommand.Split(' '))}
         if (Test-Path "$build\compilation_failed") {
             Write-Transcript
